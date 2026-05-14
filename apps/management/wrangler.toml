@@ -1,0 +1,35 @@
+# Cloudflare Pages + Astro (control plane API runs as Pages Functions).
+# Replace KV IDs before deploy. Secrets: `wrangler secret put SESSION_SECRET` (from apps/management).
+name = "is-in-management"
+compatibility_date = "2025-01-01"
+pages_build_output_dir = "dist"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "00000000-0000-0000-0000-000000000001"
+preview_id = "00000000-0000-0000-0000-000000000001"
+
+[vars]
+OTP_FROM = "noreply@is-in.nz"
+OTP_SUBJECT = "Your is-in.nz sign-in code"
+
+[[send_email]]
+name = "EMAIL"
+allowed_sender_addresses = ["noreply@is-in.nz"]
+
+[env.staging]
+name = "is-in-management-staging"
+pages_build_output_dir = "dist"
+
+[[env.staging.kv_namespaces]]
+binding = "KV"
+id = "00000000-0000-0000-0000-000000000002"
+preview_id = "00000000-0000-0000-0000-000000000002"
+
+[env.staging.vars]
+OTP_FROM = "noreply@is-in.nz"
+OTP_SUBJECT = "Your is-in.nz sign-in code (staging)"
+
+[[env.staging.send_email]]
+name = "EMAIL"
+allowed_sender_addresses = ["noreply@is-in.nz"]
