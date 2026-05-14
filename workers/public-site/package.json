@@ -1,0 +1,21 @@
+{
+  "name": "public-site",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy -e staging",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@is-in/shared": "workspace:*",
+    "hono": "^4.6.12"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250523.0",
+    "typescript": "^5.6.3",
+    "wrangler": "^3.99.0"
+  }
+}

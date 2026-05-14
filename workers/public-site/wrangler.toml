@@ -1,0 +1,22 @@
+name = "is-in-public-site"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "00000000-0000-0000-0000-000000000001"
+preview_id = "00000000-0000-0000-0000-000000000001"
+
+[vars]
+ROOT_DOMAIN = "is-in.nz"
+
+[env.staging]
+name = "is-in-public-site-staging"
+
+[[env.staging.kv_namespaces]]
+binding = "KV"
+id = "00000000-0000-0000-0000-000000000002"
+preview_id = "00000000-0000-0000-0000-000000000002"
+
+[env.staging.vars]
+ROOT_DOMAIN = "is-in.nz"
