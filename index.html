@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en-NZ">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="A personal corner of the web on is-in.nz. Under construction."
+    />
+    <title>*.is-in.nz</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f6f5f3;
+        --fg: #1c1b19;
+        --muted: #5c5a57;
+        --line: rgba(0, 0, 0, 0.12);
+        --link: #0b57d0;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #141312;
+          --fg: #f2f0ec;
+          --muted: #a9a6a1;
+          --line: rgba(255, 255, 255, 0.12);
+          --link: #8ab4ff;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100svh;
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          "Helvetica Neue",
+          Arial,
+          sans-serif;
+        font-size: 1.075rem;
+        line-height: 1.7;
+        letter-spacing: 0.018em;
+        background: var(--bg);
+        color: var(--fg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: clamp(1.25rem, 4vw, 2.5rem);
+      }
+      main {
+        width: 100%;
+        max-width: 38rem;
+      }
+      h1 {
+        margin: 0 0 clamp(0.85rem, 3.5vw, 1.75rem);
+        font-size: clamp(3.25rem, 12vw + 1.25rem, 10rem);
+        text-align:right;
+        font-weight: 700;
+        letter-spacing: -0.045em;
+        line-height: 0.98;
+        text-wrap: balance;
+      }
+      h1 .title-wildcard {
+        color: var(--muted);
+        opacity: 0.5;
+        font-weight: 500;
+      }
+      p {
+        margin: 0 0 1em;
+        color: var(--muted);
+      }
+      p:last-child {
+        margin-bottom: 0;
+      }
+      .lede {
+        color: var(--fg);
+        font-size: 1.06em;
+        line-height: 1.72;
+        letter-spacing: 0.02em;
+      }
+      hr {
+        border: 0;
+        border-top: 1px solid var(--line);
+        margin: 1.75rem 0;
+      }
+      a {
+        color: var(--link);
+        text-decoration-thickness: 1px;
+        text-underline-offset: 0.2em;
+      }
+      a:hover {
+        text-decoration-thickness: 2px;
+      }
+      footer {
+        margin-top: 1.75rem;
+        font-size: 0.9375rem;
+        line-height: 1.65;
+        letter-spacing: 0.015em;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1><span class="title-wildcard">*.&nbsp;</span>is-in.nz</h1>
+      <p class="lede">
+        A quiet corner of the web: one hostname with a profile, short links you can
+        repoint, and mail forwarded to where you already read it—without the noise
+        of generic hosting or another social graph.
+      </p>
+      <p>
+        You keep the decisions that matter: where your links land, how your page
+        reads, who receives mail for your name. The rest stays small and out of the
+        way.
+      </p>
+      <p>
+        Underneath, the bet is on simple, reliable technology—affordable to run,
+        dependable by design, and meant to be supported for decades, not months.
+      </p>
+      <hr />
+      <p>Build in progress. There is nothing to sign up for here yet.</p>
+      <footer>
+        <p>
+          <a href="https://github.com/joshmcarthur/is-in">Follow along on GitHub</a>
+          as the build takes shape.
+        </p>
+      </footer>
+    </main>
+  </body>
+</html>
