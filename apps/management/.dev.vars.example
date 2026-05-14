@@ -1,0 +1,3 @@
+# Local Pages Functions + bindings (do not commit real .dev.vars).
+# wrangler secret put SESSION_SECRET is used in deployed environments.
+SESSION_SECRET=change-me-to-a-long-random-string-for-local-dev
