@@ -1,0 +1,12 @@
+{
+  "name": "is-in.nz",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "typecheck": "pnpm -r run typecheck",
+    "dev:public-site": "pnpm --filter public-site dev",
+    "dev:email-inbound": "pnpm --filter email-inbound dev",
+    "dev:management": "pnpm --filter management dev",
+    "build:management": "pnpm --filter management build"
+  }
+}

@@ -1,1 +1,8 @@
 .pages-deploy/
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+apps/management/.astro/
+apps/management/dist/
+workers/**/dist/
