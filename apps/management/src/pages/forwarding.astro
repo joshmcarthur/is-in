@@ -1,0 +1,80 @@
+---
+export const prerender = true;
+
+import Layout from "../layouts/Layout.astro";
+
+const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
+---
+<Layout title="Web forwarding">
+  <a class="back-link" href="/dashboard">‹ Dashboard</a>
+  <div class="stack">
+    <h2 class="h2 title">Web forwarding</h2>
+    <p class="muted">
+      Visitors to <code id="hostpreview"></code> redirect to your URL.
+    </p>
+    <form id="form" class="stack">
+      <label for="web">Web forward URL</label>
+      <input id="web" name="web" type="url" placeholder="https://example.com" />
+      <button type="submit" class="btn btn-primary">Save</button>
+    </form>
+    <p id="msg" class="status" role="status" aria-live="polite"></p>
+  </div>
+  <script is:inline define:vars={{ apiBase }}>
+    const form = /** @type {HTMLFormElement} */ (document.getElementById("form"));
+    const msg = /** @type {HTMLElement} */ (document.getElementById("msg"));
+    const hostpreview = /** @type {HTMLElement} */ (document.getElementById("hostpreview"));
+    const web = /** @type {HTMLInputElement} */ (document.getElementById("web"));
+
+    async function load() {
+      const meRes = await fetch(apiBase + "/api/v1/session/me", { credentials: "include" });
+      const me = await meRes.json();
+      if (!meRes.ok || !me.authenticated) {
+        window.location.href = "/sign-in";
+        return;
+      }
+      const sitesRes = await fetch(apiBase + "/api/v1/sites/me", { credentials: "include" });
+      const body = await sitesRes.json();
+      if (!sitesRes.ok || !body.sites || !body.sites.length) {
+        window.location.href = "/claim";
+        return;
+      }
+      const site = body.sites[0];
+      const sub = site.subdomain;
+      hostpreview.textContent = sub + ".is-in.nz";
+      web.value = site.webForwards?.["*"]?.url || "";
+    }
+
+    load();
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      msg.textContent = "Saving…";
+      msg.className = "status";
+      const sitesRes = await fetch(apiBase + "/api/v1/sites/me", { credentials: "include" });
+      const body = await sitesRes.json();
+      if (!sitesRes.ok || !body.sites || !body.sites.length) {
+        msg.textContent = "No site on your account.";
+        msg.className = "status status--error";
+        return;
+      }
+      const sub = body.sites[0].subdomain;
+      const webVal = web.value.trim();
+      const res = await fetch(apiBase + "/api/v1/sites/" + encodeURIComponent(sub) + "/forwarding", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          webForwardUrl: webVal || null,
+        }),
+      });
+      const out = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        msg.textContent = out.error || "Save failed.";
+        msg.className = "status status--error";
+        return;
+      }
+      msg.textContent = "Saved.";
+      msg.className = "status status--ok";
+    });
+  </script>
+</Layout>
