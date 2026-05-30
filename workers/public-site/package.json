@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@is-in/shared": "workspace:*",
-    "hono": "^4.6.12"
+    "hono": "^4.12.23"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260530.1",
