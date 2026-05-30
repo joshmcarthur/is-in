@@ -13,9 +13,9 @@ preview_id = "00000000-0000-0000-0000-000000000001"
 OTP_FROM = "noreply@is-in.nz"
 OTP_SUBJECT = "Your is-in.nz sign-in code"
 
+# Sender is set in app code (OTP_FROM). Restrict via Email Service domain verification in production.
 [[send_email]]
 name = "EMAIL"
-allowed_sender_addresses = ["noreply@is-in.nz"]
 
 [env.staging]
 name = "is-in-management-staging"
@@ -32,4 +32,3 @@ OTP_SUBJECT = "Your is-in.nz sign-in code (staging)"
 
 [[env.staging.send_email]]
 name = "EMAIL"
-allowed_sender_addresses = ["noreply@is-in.nz"]
