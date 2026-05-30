@@ -1,0 +1,66 @@
+---
+export const prerender = true;
+
+import Layout from "../layouts/Layout.astro";
+
+const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
+---
+<Layout title="Enter code">
+  <a class="back-link" href="/sign-in">‹ Back</a>
+  <div class="stack">
+    <h2 class="h2">Enter your code</h2>
+    <p class="lede">Use the 6-digit code from your email.</p>
+    <form id="form" class="stack" novalidate>
+      <div class="input-suffix">
+        <input
+          id="code"
+          name="code"
+          inputmode="numeric"
+          pattern="[0-9]*"
+          maxlength="6"
+          autocomplete="one-time-code"
+          placeholder="123456"
+          required
+        />
+      </div>
+      <button type="submit" class="btn btn-primary" id="submit">Verify</button>
+    </form>
+    <p id="msg" class="status" role="alert" hidden></p>
+    <p>Wrong email? <a href="/sign-in">Start over</a></p>
+  </div>
+  <script is:inline define:vars={{ apiBase }}>
+    const email = sessionStorage.getItem("isin_pending_email");
+    if (!email) {
+      window.location.href = "/sign-in";
+    }
+
+    const form = /** @type {HTMLFormElement} */ (document.getElementById("form"));
+    const msg = /** @type {HTMLElement} */ (document.getElementById("msg"));
+    const submitBtn = /** @type {HTMLButtonElement} */ (document.getElementById("submit"));
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      msg.hidden = true;
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Verifying\u2026";
+
+      const code = /** @type {HTMLInputElement} */ (document.getElementById("code")).value.trim();
+      const res = await fetch(apiBase + "/api/v1/auth/otp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email, code }),
+      });
+      if (!res.ok) {
+        msg.hidden = false;
+        msg.textContent = "Code not accepted. Try again.";
+        msg.className = "status status--error";
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Verify";
+        return;
+      }
+      sessionStorage.removeItem("isin_pending_email");
+      window.location.href = "/claim";
+    });
+  </script>
+</Layout>

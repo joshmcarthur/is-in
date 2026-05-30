@@ -1,0 +1,59 @@
+---
+export const prerender = true;
+
+import Layout from "../layouts/Layout.astro";
+
+const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
+---
+<Layout title="Sign in">
+  <a class="back-link" href="/">‹ Back</a>
+  <div class="stack">
+    <h2 class="h2">Sign in</h2>
+    <p class="lede">We'll email you a code.</p>
+    <form id="form" class="stack" novalidate>
+      <div class="input-suffix">
+        <input
+          id="email"
+          name="email"
+          type="email"
+          autocomplete="email"
+          placeholder="you@example.com"
+          required
+        />
+      </div>
+      <button type="submit" class="btn btn-primary" id="submit">Email me a code</button>
+    </form>
+    <p id="msg" class="status" role="alert" hidden></p>
+    <p>Don't have an account? <a href="/claim">Claim a name</a></p>
+  </div>
+  <script is:inline define:vars={{ apiBase }}>
+    const form = /** @type {HTMLFormElement} */ (document.getElementById("form"));
+    const msg = /** @type {HTMLElement} */ (document.getElementById("msg"));
+    const submitBtn = /** @type {HTMLButtonElement} */ (document.getElementById("submit"));
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      msg.hidden = true;
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Sending\u2026";
+
+      const email = /** @type {HTMLInputElement} */ (document.getElementById("email")).value.trim();
+      const res = await fetch(apiBase + "/api/v1/auth/otp/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email }),
+      });
+      if (!res.ok) {
+        msg.hidden = false;
+        msg.textContent = "Something went wrong. Try again.";
+        msg.className = "status status--error";
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Email me a code";
+        return;
+      }
+      sessionStorage.setItem("isin_pending_email", email);
+      window.location.href = "/verify";
+    });
+  </script>
+</Layout>
