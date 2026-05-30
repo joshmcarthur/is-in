@@ -1,0 +1,146 @@
+---
+export const prerender = true;
+
+import Layout from "../layouts/Layout.astro";
+
+const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
+const docsUrl = "https://github.com/joshmcarthur/is-in#readme";
+const contactUrl = "https://github.com/joshmcarthur/is-in/issues";
+---
+
+<Layout title="Dashboard">
+  <div class="stack">
+    <div class="stack">
+      <h2 class="h2">Welcome back.</h2>
+      <p class="lede">
+        You're signed in
+        <span aria-hidden="true"> &mdash; </span>
+        <button type="button" class="btn-link sign-out">Sign out</button>
+      </p>
+    </div>
+
+    <div class="card card--sectioned">
+      <div class="card__section">
+        <p class="site-host font-mono" id="site-host"></p>
+        <p class="site-label muted">^ your page</p>
+      </div>
+
+      <ul class="nav-list nav-list--in-card" role="navigation" aria-label="Account">
+        <li>
+          <span class="nav-item nav-item--disabled" aria-disabled="true">
+            <span class="nav-item__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <path d="M20 21a8 8 0 0 0-16 0"></path>
+                <circle cx="12" cy="8" r="4"></circle>
+              </svg>
+            </span>
+            <span class="nav-item__label">Edit your page</span>
+          </span>
+        </li>
+        <li>
+          <span class="nav-item nav-item--disabled" aria-disabled="true">
+            <span class="nav-item__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <path d="M4 6h16v12H4z"></path>
+                <path d="m4 6 8 7 8-7"></path>
+              </svg>
+            </span>
+            <span class="nav-item__label">Email aliases</span>
+          </span>
+        </li>
+        <li>
+          <span class="nav-item nav-item--disabled" aria-disabled="true">
+            <span class="nav-item__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <path d="M10 13a5 5 0 0 1 7.07 0l1.41 1.41a5 5 0 0 1 0 7.07 5 5 0 0 1-7.07 0"></path>
+                <path d="M14 11a5 5 0 0 0-7.07 0L5.52 12.4a5 5 0 0 0 0 7.07 5 5 0 0 0 7.07 0"></path>
+              </svg>
+            </span>
+            <span class="nav-item__label">Short URLs</span>
+          </span>
+        </li>
+        <li>
+          <a class="nav-item" href="/forwarding">
+            <span class="nav-item__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <path d="M5 12h12"></path>
+                <path d="m13 6 6 6-6 6"></path>
+              </svg>
+            </span>
+            <span class="nav-item__label">Forwarding</span>
+            <span class="nav-item__chevron" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m9 6 6 6-6 6"></path>
+              </svg>
+            </span>
+          </a>
+        </li>
+        <li>
+          <span class="nav-item nav-item--disabled" aria-disabled="true">
+            <span class="nav-item__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path
+                  d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32 1.41-1.41"
+                ></path>
+              </svg>
+            </span>
+            <span class="nav-item__label">Settings</span>
+          </span>
+        </li>
+      </ul>
+    </div>
+
+    <footer class="help-footer">
+      <p>Need help?</p>
+      <p>
+        <a href={docsUrl}>View docs</a>
+        <span aria-hidden="true"> · </span>
+        <a href={contactUrl}>Contact</a>
+      </p>
+    </footer>
+  </div>
+
+  <script is:inline define:vars={{ apiBase }}>
+    const siteHost = /** @type {HTMLElement} */ (document.getElementById("site-host"));
+    const signOutBtns = /** @type {NodeListOf<HTMLButtonElement>} */ (
+      document.querySelectorAll(".sign-out")
+    );
+
+    async function load() {
+      const meRes = await fetch(apiBase + "/api/v1/session/me", { credentials: "include" });
+      const me = await meRes.json();
+      if (!meRes.ok || !me.authenticated) {
+        window.location.href = "/sign-in";
+        return;
+      }
+
+      const sitesRes = await fetch(apiBase + "/api/v1/sites/me", { credentials: "include" });
+      const body = await sitesRes.json();
+      if (!sitesRes.ok || !body.sites || !body.sites.length) {
+        window.location.href = "/claim";
+        return;
+      }
+
+      const sub = body.sites[0].subdomain;
+      siteHost.textContent = sub + ".is-in.nz";
+    }
+
+    async function signOut() {
+      for (const btn of signOutBtns) {
+        btn.disabled = true;
+      }
+      await fetch(apiBase + "/api/v1/session", {
+        method: "DELETE",
+        credentials: "include",
+      });
+      window.location.href = "/sign-in";
+    }
+
+    for (const btn of signOutBtns) {
+      btn.addEventListener("click", signOut);
+    }
+
+    load();
+  </script>
+</Layout>
