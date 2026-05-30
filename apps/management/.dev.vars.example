@@ -1,3 +1,4 @@
 # Local Pages Functions + bindings (do not commit real .dev.vars).
-# wrangler secret put SESSION_SECRET is used in deployed environments.
+# Required for all /api/* routes (including OTP). Copy to .dev.vars in this directory.
+# Deployed: wrangler secret put SESSION_SECRET (from apps/management).
 SESSION_SECRET=change-me-to-a-long-random-string-for-local-dev
