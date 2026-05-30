@@ -25,10 +25,13 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
       </div>
       <p id="avail" class="status" role="status" aria-live="polite"></p>
       <button type="submit" class="btn btn-primary" id="continue" disabled>Continue</button>
+      <p id="guest-hint" class="lede" hidden></p>
     </form>
     <p id="msg" class="status" role="alert" hidden></p>
   </div>
   <script is:inline define:vars={{ apiBase }}>
+    const PENDING_SUB_KEY = "isin_pending_subdomain";
+
     async function me() {
       const res = await fetch(apiBase + "/api/v1/session/me", { credentials: "include" });
       if (!res.ok) return null;
@@ -47,36 +50,71 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
     const continueBtn = /** @type {HTMLButtonElement} */ (document.getElementById("continue"));
     const form = /** @type {HTMLFormElement} */ (document.getElementById("form"));
     const msg = /** @type {HTMLElement} */ (document.getElementById("msg"));
+    const guestHint = /** @type {HTMLElement} */ (document.getElementById("guest-hint"));
 
     let checkTimer = 0;
     let checkSeq = 0;
+    let authenticated = false;
+    let lastAvailableSubdomain = "";
+
+    function updateContinueLabel() {
+      if (!authenticated && lastAvailableSubdomain) {
+        continueBtn.textContent = "Sign in to reserve";
+      } else {
+        continueBtn.textContent = "Continue";
+      }
+    }
+
+    function updateGuestHint() {
+      if (authenticated || !lastAvailableSubdomain) {
+        guestHint.hidden = true;
+        guestHint.textContent = "";
+        return;
+      }
+      guestHint.hidden = false;
+      guestHint.textContent =
+        "We\u2019ll email you a code, then bring you back to reserve " +
+        lastAvailableSubdomain +
+        ".is-in.nz.";
+    }
 
     function clearAvail() {
       avail.textContent = "";
       avail.className = "status";
       continueBtn.disabled = true;
+      lastAvailableSubdomain = "";
+      updateContinueLabel();
+      updateGuestHint();
     }
 
     function setAvailSuccess(subdomain) {
       avail.textContent = "\u2713 " + subdomain + ".is-in.nz is available!";
       avail.className = "status status--success";
       continueBtn.disabled = false;
+      lastAvailableSubdomain = subdomain;
+      updateContinueLabel();
+      updateGuestHint();
     }
 
     function setAvailError(text) {
       avail.textContent = text;
       avail.className = "status status--error";
       continueBtn.disabled = true;
+      lastAvailableSubdomain = "";
+      updateContinueLabel();
+      updateGuestHint();
     }
 
-    subdomainInput.addEventListener("input", () => {
+    function scheduleAvailabilityCheck(subdomain) {
       clearTimeout(checkTimer);
-      const subdomain = subdomainInput.value.trim().toLowerCase();
       if (!subdomain) {
         clearAvail();
         return;
       }
       continueBtn.disabled = true;
+      lastAvailableSubdomain = "";
+      updateContinueLabel();
+      updateGuestHint();
       const seq = ++checkSeq;
       checkTimer = window.setTimeout(async () => {
         const res = await fetch(apiBase + "/api/v1/availability", {
@@ -97,27 +135,53 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
         }
         setAvailError(name + ".is-in.nz is not available.");
       }, 300);
+    }
+
+    subdomainInput.addEventListener("input", () => {
+      scheduleAvailabilityCheck(subdomainInput.value.trim().toLowerCase());
     });
+
+    function resolvePendingSubdomain() {
+      const fromQuery = new URLSearchParams(window.location.search).get("subdomain");
+      const fromStorage = sessionStorage.getItem(PENDING_SUB_KEY);
+      const raw = (fromQuery ?? fromStorage ?? "").trim().toLowerCase();
+      if (!raw) return "";
+      sessionStorage.setItem(PENDING_SUB_KEY, raw);
+      return raw;
+    }
 
     (async () => {
       const u = await me();
-      if (!u || !u.authenticated) {
-        window.location.href = "/sign-in";
+      authenticated = !!(u && u.authenticated);
+      if (authenticated && (await hasSite())) {
+        window.location.href = "/dashboard";
         return;
       }
-      if (await hasSite()) {
-        window.location.href = "/dashboard";
+      updateContinueLabel();
+
+      const pending = resolvePendingSubdomain();
+      if (pending) {
+        subdomainInput.value = pending;
+        scheduleAvailabilityCheck(pending);
       }
     })();
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       if (continueBtn.disabled) return;
+
+      const subdomain = subdomainInput.value.trim().toLowerCase();
+
+      if (!authenticated) {
+        sessionStorage.setItem(PENDING_SUB_KEY, subdomain);
+        window.location.href = "/sign-in";
+        return;
+      }
+
       continueBtn.disabled = true;
       continueBtn.textContent = "Reserving\u2026";
       msg.hidden = true;
 
-      const subdomain = subdomainInput.value.trim().toLowerCase();
       const res = await fetch(apiBase + "/api/v1/sites/claim", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -131,13 +195,21 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
           return;
         }
         msg.hidden = false;
-        msg.textContent =
-          data.error === "taken" ? "That name is taken." : data.error || "Could not reserve.";
+        if (data.error === "subdomain_not_allowed") {
+          msg.textContent = "That name isn't allowed under our usage policy.";
+        } else if (data.error === "moderation_unavailable") {
+          msg.textContent = "Couldn't verify that name right now. Try again.";
+        } else if (data.error === "taken") {
+          msg.textContent = "That name is taken.";
+        } else {
+          msg.textContent = data.error || "Could not reserve.";
+        }
         msg.className = "status status--error";
         continueBtn.disabled = false;
-        continueBtn.textContent = "Continue";
+        updateContinueLabel();
         return;
       }
+      sessionStorage.removeItem(PENDING_SUB_KEY);
       sessionStorage.setItem("isin_site", subdomain);
       window.location.href = "/dashboard";
     });

@@ -9,7 +9,7 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
   <a class="back-link" href="/">‹ Back</a>
   <div class="stack">
     <h2 class="h2">Sign in</h2>
-    <p class="lede">We'll email you a code.</p>
+    <p class="lede" id="lede">We'll email you a code.</p>
     <form id="form" class="stack" novalidate>
       <div class="input-suffix">
         <input
@@ -27,6 +27,12 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
     <p>Don't have an account? <a href="/claim">Claim a name</a></p>
   </div>
   <script is:inline define:vars={{ apiBase }}>
+    const pendingSub = sessionStorage.getItem("isin_pending_subdomain");
+    if (pendingSub) {
+      const lede = /** @type {HTMLElement} */ (document.getElementById("lede"));
+      lede.textContent = "Sign in to reserve " + pendingSub + ".is-in.nz. We\u2019ll email you a code.";
+    }
+
     const form = /** @type {HTMLFormElement} */ (document.getElementById("form"));
     const msg = /** @type {HTMLElement} */ (document.getElementById("msg"));
     const submitBtn = /** @type {HTMLButtonElement} */ (document.getElementById("submit"));

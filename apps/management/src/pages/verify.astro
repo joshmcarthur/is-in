@@ -147,6 +147,12 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
 
       sessionStorage.removeItem("isin_pending_email");
 
+      const pendingSub = sessionStorage.getItem("isin_pending_subdomain");
+      if (pendingSub) {
+        window.location.href = "/claim";
+        return;
+      }
+
       const sitesRes = await fetch(apiBase + "/api/v1/sites/me", { credentials: "include" });
       const sitesBody = await sitesRes.json();
       const hasSite =
