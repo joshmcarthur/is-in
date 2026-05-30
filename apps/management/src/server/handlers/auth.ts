@@ -7,6 +7,7 @@ import {
 } from "@is-in/shared";
 import { appendSessionCookie } from "../cookies";
 import { hmacSha256Hex, randomOtp6, randomSessionId, timingSafeEqualHex } from "../crypto";
+import { buildOtpEmailContent } from "../email/otpEmail";
 import { json } from "../http";
 import {
   buildRateLimitKey,
@@ -76,11 +77,16 @@ export const postOtpStart: ControlPlaneHandler = async (request, env) => {
 
   if (env.EMAIL) {
     try {
+      const { html, text } = buildOtpEmailContent({
+        code,
+        expiresMinutes: OTP_TTL_SEC / 60,
+      });
       await env.EMAIL.send({
         from: env.OTP_FROM,
         to: email,
         subject: env.OTP_SUBJECT,
-        text: `Your sign-in code is: ${code}\n\nIt expires in 10 minutes. If you did not request this, you can ignore this email.`,
+        html,
+        text,
       });
     } catch (e) {
       console.error("otp_email_send_failed", e);

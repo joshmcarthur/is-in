@@ -45,7 +45,15 @@ describe("otp", () => {
     expect(body).toEqual({ ok: true });
     expect(await test.env.KV.get(otpKey(TEST_EMAIL))).not.toBeNull();
     expect(test.sentEmails).toHaveLength(1);
-    expect(test.sentEmails[0]?.text).toContain("123456");
+    const email = test.sentEmails[0];
+    expect(email?.text).toContain("123 456");
+    expect(email?.html).toContain("123 456");
+    expect(email?.html).toContain("Here is your sign in code");
+    expect(email?.html).toContain("This code will expire in 10 minutes.");
+    expect(email?.html).toContain(
+      "If you didn't request this code, you can safely ignore this email.",
+    );
+    expect(email?.html).toContain("is-in.nz — your place on the NZ internet.");
   });
 
   it("returns 401 for wrong verify code", async () => {
@@ -81,7 +89,9 @@ describe("otp", () => {
       body: JSON.stringify({ email: TEST_EMAIL }),
       env: test.env,
     });
-    expect(test.sentEmails[0]?.text).toContain("654321");
+    const sent = test.sentEmails[0];
+    expect(sent?.text).toContain("654 321");
+    expect(sent?.html).toContain("654 321");
 
     const verifyRes = await callControlPlane(["v1", "auth", "otp", "verify"], {
       method: "POST",

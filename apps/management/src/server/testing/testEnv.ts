@@ -6,6 +6,7 @@ export type SentEmail = {
   to: string;
   subject: string;
   text: string;
+  html: string;
 };
 
 export type TestEnvOptions = {
@@ -39,12 +40,14 @@ export function createTestEnv(options: TestEnvOptions = {}): {
           to: string;
           subject: string;
           text?: string;
+          html?: string;
         };
         sentEmails.push({
           from: m.from,
           to: m.to,
           subject: m.subject,
           text: m.text ?? "",
+          html: m.html ?? "",
         });
         return {};
       },
