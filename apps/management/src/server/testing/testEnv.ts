@@ -1,5 +1,6 @@
 import type { ManagementEnv } from "../env";
 import { createMemoryKv } from "./memoryKv";
+import { createAllowingMockAi } from "./mockAi";
 
 export type SentEmail = {
   from: string;
@@ -26,6 +27,7 @@ export function createTestEnv(options: TestEnvOptions = {}): {
 
   const env: ManagementEnv = {
     KV: createMemoryKv(),
+    AI: createAllowingMockAi(),
     SESSION_SECRET: sessionSecret,
     OTP_FROM: "noreply@test.is-in.nz",
     OTP_SUBJECT: "Test sign-in code",

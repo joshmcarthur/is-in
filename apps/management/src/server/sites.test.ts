@@ -2,6 +2,7 @@ import { canonicalEmail, type SiteRecord, siteKey, type UserRecord, userKey } fr
 import { describe, expect, it } from "vitest";
 import { callControlPlane, callControlPlaneJson } from "./testing/api.js";
 import { OTHER_EMAIL, TEST_EMAIL, TEST_SUB, useControlPlaneTest } from "./testing/hooks.js";
+import { createMockAi } from "./testing/mockAi.js";
 import { signInViaOtp, withSessionCookie } from "./testing/session.js";
 
 describe("sites", () => {
@@ -77,6 +78,37 @@ describe("sites", () => {
     });
     expect(status).toBe(409);
     expect(body).toEqual({ error: "already_has_site" });
+  });
+
+  it("returns 400 when moderation rejects subdomain", async () => {
+    const env = {
+      ...test.env,
+      AI: createMockAi({ allowed: false, reason: "brand impersonation" }),
+    };
+    const sid = await signInViaOtp(env, TEST_EMAIL);
+    const { status, body } = await callControlPlaneJson(["v1", "sites", "claim"], {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ subdomain: "paypal-support" }),
+      env,
+      ...withSessionCookie(sid),
+    });
+    expect(status).toBe(400);
+    expect(body).toEqual({ error: "subdomain_not_allowed" });
+  });
+
+  it("returns 503 when moderation is unavailable", async () => {
+    const env = { ...test.env, AI: createMockAi("throw") };
+    const sid = await signInViaOtp(env, TEST_EMAIL);
+    const { status, body } = await callControlPlaneJson(["v1", "sites", "claim"], {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ subdomain: "newname" }),
+      env,
+      ...withSessionCookie(sid),
+    });
+    expect(status).toBe(503);
+    expect(body).toEqual({ error: "moderation_unavailable" });
   });
 
   it("PATCH forwarding updates and clears fields", async () => {

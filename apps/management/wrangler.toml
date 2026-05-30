@@ -17,6 +17,9 @@ OTP_SUBJECT = "Your is-in.nz sign-in code"
 [[send_email]]
 name = "EMAIL"
 
+[ai]
+binding = "AI"
+
 [env.staging]
 name = "is-in-management-staging"
 pages_build_output_dir = "dist"
@@ -32,3 +35,6 @@ OTP_SUBJECT = "Your is-in.nz sign-in code (staging)"
 
 [[env.staging.send_email]]
 name = "EMAIL"
+
+[env.staging.ai]
+binding = "AI"

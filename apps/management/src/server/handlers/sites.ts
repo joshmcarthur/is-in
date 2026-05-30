@@ -7,6 +7,7 @@ import {
   userKey,
 } from "@is-in/shared";
 import { json } from "../http";
+import { moderateSubdomain } from "../moderation/subdomain";
 import { readSession } from "../session";
 import { isSafeForwardUrl, isValidDestinationEmail } from "../validate";
 import type { ControlPlaneHandler } from "./types";
@@ -71,6 +72,17 @@ export const postSitesClaim: ControlPlaneHandler = async (request, env) => {
   const race = await env.KV.get(sk);
   if (race) {
     return json({ error: "taken" }, 409);
+  }
+
+  if (env.SUBDOMAIN_MODERATION !== "off") {
+    if (!env.AI) return json({ error: "server_misconfigured" }, 500);
+    const mod = await moderateSubdomain(env.AI, subdomain);
+    if (!mod.ok && mod.reason === "policy") {
+      return json({ error: "subdomain_not_allowed" }, 400);
+    }
+    if (!mod.ok) {
+      return json({ error: "moderation_unavailable" }, 503);
+    }
   }
 
   const now = new Date().toISOString();

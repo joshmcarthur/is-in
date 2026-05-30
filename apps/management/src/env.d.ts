@@ -15,10 +15,12 @@ declare namespace App {
     runtime: {
       env: {
         KV: KVNamespace;
+        AI: Ai;
         EMAIL?: SendEmail;
         SESSION_SECRET: string;
         OTP_FROM: string;
         OTP_SUBJECT: string;
+        SUBDOMAIN_MODERATION?: string;
         ASSETS?: Fetcher;
       };
       cf: IncomingRequestCfProperties | undefined;
