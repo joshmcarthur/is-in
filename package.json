@@ -3,11 +3,23 @@
   "private": true,
   "packageManager": "pnpm@9.15.0",
   "scripts": {
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test",
     "typecheck": "pnpm -r run typecheck",
     "dev:public-site": "pnpm --filter public-site dev",
     "dev:email-inbound": "pnpm --filter email-inbound dev",
     "dev:management": "pnpm --filter management dev",
     "dev:management:pages": "pnpm --filter management dev:pages",
     "build:management": "pnpm --filter management build"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.16",
+    "@cloudflare/vitest-pool-workers": "^0.16.10",
+    "vite": "^6.0.0",
+    "vitest": "^4.1.0"
   }
 }

@@ -107,7 +107,10 @@ Requires [pnpm](https://pnpm.io/) (version aligned with [`package.json`](package
 
 ```bash
 pnpm install
+pnpm verify                 # lint + typecheck + test (run before PRs)
 pnpm typecheck
+pnpm test
+pnpm test:watch             # Vitest watch mode
 pnpm dev:public-site
 pnpm dev:email-inbound
 pnpm dev:management          # Astro dev — UI + API; no OTP email (send_email not in platform proxy)
@@ -130,6 +133,14 @@ pnpm --filter email-inbound deploy
 pnpm --filter public-site deploy:staging
 pnpm --filter email-inbound deploy:staging
 ```
+
+## Development
+
+- **Lint and format:** [Biome](https://biomejs.dev/) at the repo root (`pnpm lint`, `pnpm lint:fix`). Install the [Biome VS Code extension](https://biomejs.dev/reference/vscode/) for format-on-save.
+- **Tests:** [Vitest](https://vitest.dev/) (`pnpm test`). Shared validation logic and management server helpers use the Node pool; the `public-site` worker uses `@cloudflare/vitest-pool-workers`.
+- **Single workspace:** `pnpm --filter @is-in/shared test` runs tests for one package.
+
+See [`docs/development.md`](docs/development.md) for CI, security scanning, and conventions for new tests.
 
 ## Conceptual data model
 
@@ -165,5 +176,6 @@ Reserve-address onboarding, the Pages-hosted control API (`/api/*`), the public 
 
 ## Documentation
 
+- **Development:** [`docs/development.md`](docs/development.md)
 - **Product brief:** [`docs/init/PLAN.md`](docs/init/PLAN.md)
 - **ADRs:** [`docs/architectural-decision-records/`](docs/architectural-decision-records/) — ADR-0001 … ADR-0006 for OTP, sessions, KV, workers, email MVP, staging
