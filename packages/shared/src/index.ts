@@ -1,26 +1,6 @@
-/** Subdomains reserved for platform use (see ADR-0003). */
-export const RESERVED_SUBDOMAINS = new Set([
-  "www",
-  "home",
-  "api",
-  "mail",
-  "smtp",
-  "ftp",
-  "admin",
-  "root",
-  "is-in",
-  "staging",
-  "dev",
-  "test",
-  "_dmarc",
-  "status",
-  "ns1",
-  "ns2",
-  "mx",
-  "imap",
-  "pop",
-  "webmail",
-]);
+import { RESERVED_SUBDOMAINS } from "./reserved.js";
+
+export { RESERVED_SUBDOMAINS } from "./reserved.js";
 
 export function siteKey(subdomain: string): string {
   return `site:${subdomain.toLowerCase()}`;
@@ -63,12 +43,29 @@ export function isValidSubdomain(raw: string): boolean {
   return true;
 }
 
-export type SiteRecord = {
-  ownerEmail: string;
-  webForwardUrl: string | null;
-  emailForwardDest: string | null;
-  createdAt: string;
-};
+export type {
+  EmailAlias,
+  SiteRecord,
+  WebForward,
+} from "./forwarding.js";
+export {
+  CATCH_ALL_KEY,
+  countEmailAliases,
+  countWebLinks,
+  createEmptySiteRecord,
+  ensureForwardingMaps,
+  isReservedWebPath,
+  isValidEmailLocalKey,
+  isValidWebPathKey,
+  MAX_DESTINATIONS_PER_ALIAS,
+  MAX_EMAIL_ALIASES,
+  MAX_WEB_LINKS,
+  normalizeEmailLocal,
+  normalizeWebPath,
+  RESERVED_EMAIL_LOCALS,
+  resolveEmailAlias,
+  resolveWebForward,
+} from "./forwarding.js";
 
 export type UserRecord = {
   sites: string[];

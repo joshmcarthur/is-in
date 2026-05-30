@@ -1,0 +1,23 @@
+/** Subdomains reserved for platform use (see ADR-0003). */
+export const RESERVED_SUBDOMAINS = new Set([
+  "www",
+  "home",
+  "api",
+  "mail",
+  "smtp",
+  "ftp",
+  "admin",
+  "root",
+  "is-in",
+  "staging",
+  "dev",
+  "test",
+  "_dmarc",
+  "status",
+  "ns1",
+  "ns2",
+  "mx",
+  "imap",
+  "pop",
+  "webmail",
+]);

@@ -4,9 +4,17 @@ import { postAvailability } from "./handlers/availability";
 import { getHealth } from "./handlers/health";
 import { deleteSession, getSessionMe } from "./handlers/session";
 import {
+  deleteSiteAlias,
+  deleteSiteLink,
   getSitesMe,
+  matchesDeleteSiteAlias,
+  matchesDeleteSiteLink,
   matchesPatchSiteForwarding,
+  matchesPostSiteAlias,
+  matchesPostSiteLink,
   patchSiteForwarding,
+  postSiteAlias,
+  postSiteLink,
   postSitesClaim,
 } from "./handlers/sites";
 import type { ControlPlaneHandler } from "./handlers/types";
@@ -46,6 +54,22 @@ export async function routeControlPlane(
 
   if (method === "PATCH" && matchesPatchSiteForwarding(segments)) {
     return patchSiteForwarding(request, env, segments);
+  }
+
+  if (method === "POST" && matchesPostSiteLink(segments)) {
+    return postSiteLink(request, env, segments);
+  }
+
+  if (method === "DELETE" && matchesDeleteSiteLink(segments)) {
+    return deleteSiteLink(request, env, segments);
+  }
+
+  if (method === "POST" && matchesPostSiteAlias(segments)) {
+    return postSiteAlias(request, env, segments);
+  }
+
+  if (method === "DELETE" && matchesDeleteSiteAlias(segments)) {
+    return deleteSiteAlias(request, env, segments);
   }
 
   const hit = routeByKey.get(`${method} ${path}`);

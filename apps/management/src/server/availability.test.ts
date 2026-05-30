@@ -1,4 +1,4 @@
-import { type SiteRecord, siteKey } from "@is-in/shared";
+import { createEmptySiteRecord, siteKey } from "@is-in/shared";
 import { describe, expect, it } from "vitest";
 import { callControlPlaneJson } from "./testing/api.js";
 import { TEST_SUB, useControlPlaneTest } from "./testing/hooks.js";
@@ -31,12 +31,7 @@ describe("availability", () => {
   });
 
   it("reports unavailable when site exists in KV", async () => {
-    const site: SiteRecord = {
-      ownerEmail: "owner@example.com",
-      webForwardUrl: null,
-      emailForwardDest: null,
-      createdAt: new Date().toISOString(),
-    };
+    const site = createEmptySiteRecord("owner@example.com", new Date().toISOString());
     await test.env.KV.put(siteKey(TEST_SUB), JSON.stringify(site));
     const { body } = await callControlPlaneJson<{ available: boolean }>(["v1", "availability"], {
       method: "POST",

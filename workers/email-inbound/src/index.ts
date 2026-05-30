@@ -1,4 +1,4 @@
-import { type SiteRecord, siteKey } from "@is-in/shared";
+import { resolveEmailAlias, type SiteRecord, siteKey } from "@is-in/shared";
 import { parseRecipientTo } from "./parse-recipient.js";
 
 export type EmailEnv = {
@@ -33,8 +33,11 @@ export default {
     } catch {
       return;
     }
-    if (!site.emailForwardDest) return;
+    const local = addr.slice(0, at);
+    const alias = resolveEmailAlias(site, local);
+    const destination = alias?.destinations[0];
+    if (!destination) return;
 
-    await message.forward(site.emailForwardDest);
+    await message.forward(destination);
   },
 } satisfies ExportedHandler<EmailEnv>;

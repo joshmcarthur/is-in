@@ -1,4 +1,4 @@
-import { type SiteRecord, siteKey } from "@is-in/shared";
+import { resolveWebForward, type SiteRecord, siteKey } from "@is-in/shared";
 import { Hono } from "hono";
 
 export type PublicEnv = {
@@ -38,11 +38,12 @@ app.all("*", async (c) => {
     return c.text("Site not found.", 404);
   }
 
-  if (!record.webForwardUrl) {
+  const rule = resolveWebForward(record, c.req.path);
+  if (!rule) {
     return c.text("No web forwarding configured yet.", 200);
   }
 
-  return c.redirect(record.webForwardUrl, 302);
+  return c.redirect(rule.url, rule.status ?? 302);
 });
 
 export default { fetch: app.fetch };

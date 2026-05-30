@@ -1,4 +1,12 @@
-import { canonicalEmail, type SiteRecord, siteKey, type UserRecord, userKey } from "@is-in/shared";
+import {
+  CATCH_ALL_KEY,
+  canonicalEmail,
+  createEmptySiteRecord,
+  type SiteRecord,
+  siteKey,
+  type UserRecord,
+  userKey,
+} from "@is-in/shared";
 import { describe, expect, it } from "vitest";
 import { callControlPlane, callControlPlaneJson } from "./testing/api.js";
 import { OTHER_EMAIL, TEST_EMAIL, TEST_SUB, useControlPlaneTest } from "./testing/hooks.js";
@@ -45,12 +53,7 @@ describe("sites", () => {
   });
 
   it("returns 409 when subdomain is taken", async () => {
-    const site: SiteRecord = {
-      ownerEmail: "owner@example.com",
-      webForwardUrl: null,
-      emailForwardDest: null,
-      createdAt: new Date().toISOString(),
-    };
+    const site = createEmptySiteRecord("owner@example.com", new Date().toISOString());
     await test.env.KV.put(siteKey("taken"), JSON.stringify(site));
     const sid = await signInViaOtp(test.env, TEST_EMAIL);
     const { status, body } = await callControlPlaneJson(["v1", "sites", "claim"], {
@@ -135,8 +138,10 @@ describe("sites", () => {
       },
     );
     expect(patchRes.status).toBe(200);
-    expect(patchRes.body?.site.webForwardUrl).toBe("https://example.com/page");
-    expect(patchRes.body?.site.emailForwardDest).toBe("fwd@example.com");
+    expect(patchRes.body?.site.webForwards?.[CATCH_ALL_KEY]?.url).toBe("https://example.com/page");
+    expect(patchRes.body?.site.emailAliases?.[CATCH_ALL_KEY]?.destinations).toEqual([
+      "fwd@example.com",
+    ]);
 
     const clearRes = await callControlPlaneJson<{ site: SiteRecord }>(
       ["v1", "sites", TEST_SUB, "forwarding"],
@@ -148,17 +153,84 @@ describe("sites", () => {
         ...withSessionCookie(sid),
       },
     );
-    expect(clearRes.body?.site.webForwardUrl).toBeNull();
-    expect(clearRes.body?.site.emailForwardDest).toBeNull();
+    expect(clearRes.body?.site.webForwards?.[CATCH_ALL_KEY]).toBeUndefined();
+    expect(clearRes.body?.site.emailAliases?.[CATCH_ALL_KEY]).toBeUndefined();
+  });
+
+  it("POST and DELETE links manage path-specific web forwards", async () => {
+    const sid = await signInViaOtp(test.env, TEST_EMAIL);
+    await callControlPlane(["v1", "sites", "claim"], {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ subdomain: TEST_SUB }),
+      env: test.env,
+      ...withSessionCookie(sid),
+    });
+
+    const postRes = await callControlPlaneJson<{ ok: boolean; path: string; site: SiteRecord }>(
+      ["v1", "sites", TEST_SUB, "links"],
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ path: "go/event", url: "https://example.com/event", status: 301 }),
+        env: test.env,
+        ...withSessionCookie(sid),
+      },
+    );
+    expect(postRes.status).toBe(200);
+    expect(postRes.body?.path).toBe("go/event");
+    expect(postRes.body?.site.webForwards?.["go/event"]?.url).toBe("https://example.com/event");
+
+    const delRes = await callControlPlaneJson<{ ok: boolean; site: SiteRecord }>(
+      ["v1", "sites", TEST_SUB, "links", "go", "event"],
+      {
+        method: "DELETE",
+        env: test.env,
+        ...withSessionCookie(sid),
+      },
+    );
+    expect(delRes.status).toBe(200);
+    expect(delRes.body?.site.webForwards?.["go/event"]).toBeUndefined();
+  });
+
+  it("POST and DELETE aliases manage local-specific email forwards", async () => {
+    const sid = await signInViaOtp(test.env, TEST_EMAIL);
+    await callControlPlane(["v1", "sites", "claim"], {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ subdomain: TEST_SUB }),
+      env: test.env,
+      ...withSessionCookie(sid),
+    });
+
+    const postRes = await callControlPlaneJson<{ ok: boolean; local: string; site: SiteRecord }>(
+      ["v1", "sites", TEST_SUB, "aliases"],
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ local: "jobs", destinations: ["jobs@example.com"] }),
+        env: test.env,
+        ...withSessionCookie(sid),
+      },
+    );
+    expect(postRes.status).toBe(200);
+    expect(postRes.body?.local).toBe("jobs");
+    expect(postRes.body?.site.emailAliases?.jobs?.destinations).toEqual(["jobs@example.com"]);
+
+    const delRes = await callControlPlaneJson<{ ok: boolean; site: SiteRecord }>(
+      ["v1", "sites", TEST_SUB, "aliases", "jobs"],
+      {
+        method: "DELETE",
+        env: test.env,
+        ...withSessionCookie(sid),
+      },
+    );
+    expect(delRes.status).toBe(200);
+    expect(delRes.body?.site.emailAliases?.jobs).toBeUndefined();
   });
 
   it("PATCH forwarding returns 403 for non-owner", async () => {
-    const site: SiteRecord = {
-      ownerEmail: canonicalEmail(OTHER_EMAIL),
-      webForwardUrl: null,
-      emailForwardDest: null,
-      createdAt: new Date().toISOString(),
-    };
+    const site = createEmptySiteRecord(canonicalEmail(OTHER_EMAIL), new Date().toISOString());
     await test.env.KV.put(siteKey(TEST_SUB), JSON.stringify(site));
     const sid = await signInViaOtp(test.env, TEST_EMAIL);
     const { status, body } = await callControlPlaneJson(["v1", "sites", TEST_SUB, "forwarding"], {
