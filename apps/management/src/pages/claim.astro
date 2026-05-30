@@ -1,0 +1,128 @@
+---
+export const prerender = true;
+import Layout from "../layouts/Layout.astro";
+const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
+---
+<Layout title="Claim your name">
+  <a class="back-link" href="/">‹ Back</a>
+  <div class="stack">
+    <h2 class="h2">Claim your name</h2>
+    <p class="lede">This will be your unique address on is-in.nz.</p>
+    <form id="form" class="stack" novalidate>
+      <div class="input-suffix">
+        <input
+          id="subdomain"
+          name="subdomain"
+          autocomplete="off"
+          spellcheck="false"
+          autocapitalize="off"
+          required
+          aria-describedby="avail"
+        />
+        <span class="suffix" aria-hidden="true">.is-in.nz</span>
+      </div>
+      <p id="avail" class="status" role="status" aria-live="polite"></p>
+      <button type="submit" class="btn btn-primary" id="continue" disabled>Continue</button>
+    </form>
+    <p id="msg" class="status" role="alert" hidden></p>
+  </div>
+  <script is:inline define:vars={{ apiBase }}>
+    async function me() {
+      const res = await fetch(apiBase + "/api/v1/session/me", { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    }
+
+    const subdomainInput = /** @type {HTMLInputElement} */ (document.getElementById("subdomain"));
+    const avail = /** @type {HTMLElement} */ (document.getElementById("avail"));
+    const continueBtn = /** @type {HTMLButtonElement} */ (document.getElementById("continue"));
+    const form = /** @type {HTMLFormElement} */ (document.getElementById("form"));
+    const msg = /** @type {HTMLElement} */ (document.getElementById("msg"));
+
+    let checkTimer = 0;
+    let checkSeq = 0;
+
+    function clearAvail() {
+      avail.textContent = "";
+      avail.className = "status";
+      continueBtn.disabled = true;
+    }
+
+    function setAvailSuccess(subdomain) {
+      avail.textContent = "\u2713 " + subdomain + ".is-in.nz is available!";
+      avail.className = "status status--success";
+      continueBtn.disabled = false;
+    }
+
+    function setAvailError(text) {
+      avail.textContent = text;
+      avail.className = "status status--error";
+      continueBtn.disabled = true;
+    }
+
+    subdomainInput.addEventListener("input", () => {
+      clearTimeout(checkTimer);
+      const subdomain = subdomainInput.value.trim().toLowerCase();
+      if (!subdomain) {
+        clearAvail();
+        return;
+      }
+      continueBtn.disabled = true;
+      const seq = ++checkSeq;
+      checkTimer = window.setTimeout(async () => {
+        const res = await fetch(apiBase + "/api/v1/availability", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ subdomain }),
+        });
+        if (seq !== checkSeq) return;
+        const data = await res.json();
+        const name = typeof data.subdomain === "string" ? data.subdomain : subdomain;
+        if (data.available) {
+          setAvailSuccess(name);
+          return;
+        }
+        if (data.reason === "invalid_or_reserved") {
+          setAvailError("Use letters, numbers, and hyphens.");
+          return;
+        }
+        setAvailError(name + ".is-in.nz is not available.");
+      }, 300);
+    });
+
+    (async () => {
+      const u = await me();
+      if (!u || !u.authenticated) {
+        window.location.href = "/sign-in";
+      }
+    })();
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (continueBtn.disabled) return;
+      continueBtn.disabled = true;
+      continueBtn.textContent = "Reserving\u2026";
+      msg.hidden = true;
+
+      const subdomain = subdomainInput.value.trim().toLowerCase();
+      const res = await fetch(apiBase + "/api/v1/sites/claim", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ subdomain }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        msg.hidden = false;
+        msg.textContent =
+          data.error === "taken" ? "That name is taken." : data.error || "Could not reserve.";
+        msg.className = "status status--error";
+        continueBtn.disabled = false;
+        continueBtn.textContent = "Continue";
+        return;
+      }
+      sessionStorage.setItem("isin_site", subdomain);
+      window.location.href = "/forwarding";
+    });
+  </script>
+</Layout>
