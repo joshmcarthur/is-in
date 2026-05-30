@@ -299,10 +299,6 @@ footer {
   border-radius: 0;
   border-top: 1px solid var(--line);
 }
-.nav-list--in-card .nav-item {
-  padding-left: var(--card-pad);
-  padding-right: var(--card-pad);
-}
 .nav-item {
   display: flex;
   align-items: center;
@@ -314,6 +310,10 @@ footer {
   font-size: 0.9375rem;
   line-height: 1.4;
   letter-spacing: 0.015em;
+}
+.nav-list--in-card .nav-item {
+  padding-left: var(--card-pad);
+  padding-right: var(--card-pad);
 }
 .nav-list > li:first-child .nav-item {
   border-top: 0;
