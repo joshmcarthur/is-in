@@ -8,13 +8,15 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
 <Layout title="Enter code">
   <a class="back-link" href="/sign-in">‹ Back</a>
   <div class="stack">
-    <h2 class="h2">Enter your code</h2>
-    <p class="lede">Use the 6-digit code from your email.</p>
+    <h2 class="h2" id="heading">Enter your code</h2>
+    <p class="lede" id="lede">Use the 6-digit code from your email.</p>
     <form id="form" class="stack" novalidate>
+      <label for="code">Code</label>
       <div class="input-suffix">
         <input
           id="code"
           name="code"
+          type="text"
           inputmode="numeric"
           pattern="[0-9]*"
           maxlength="6"
@@ -23,7 +25,10 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
           required
         />
       </div>
-      <button type="submit" class="btn btn-primary" id="submit">Verify</button>
+      <p class="text-center" id="resend-wrap" hidden>
+        <button type="button" class="btn-link" id="resend">Resend code</button>
+      </p>
+      <button type="submit" class="btn btn-primary w-100" id="submit">Verify</button>
     </form>
     <p id="msg" class="status" role="alert" hidden></p>
     <p>Wrong email? <a href="/sign-in">Start over</a></p>
@@ -34,33 +39,104 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
       window.location.href = "/sign-in";
     }
 
+    const heading = /** @type {HTMLElement} */ (document.getElementById("heading"));
+    const lede = /** @type {HTMLElement} */ (document.getElementById("lede"));
     const form = /** @type {HTMLFormElement} */ (document.getElementById("form"));
     const msg = /** @type {HTMLElement} */ (document.getElementById("msg"));
     const submitBtn = /** @type {HTMLButtonElement} */ (document.getElementById("submit"));
+    const resendWrap = /** @type {HTMLElement} */ (document.getElementById("resend-wrap"));
+    const resendBtn = /** @type {HTMLButtonElement} */ (document.getElementById("resend"));
+    const codeInput = /** @type {HTMLInputElement} */ (document.getElementById("code"));
+
+    let invalid = false;
+
+    function showInvalidState() {
+      if (invalid) return;
+      invalid = true;
+      heading.textContent = "Invalid code";
+      lede.textContent = "That code doesn't look right. Please try again.";
+      resendWrap.hidden = false;
+      submitBtn.textContent = "Try again";
+    }
+
+    resendBtn.addEventListener("click", async () => {
+      msg.hidden = true;
+      resendBtn.disabled = true;
+      const res = await fetch(apiBase + "/api/v1/auth/otp/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email }),
+      });
+      resendBtn.disabled = false;
+      if (!res.ok) {
+        msg.hidden = false;
+        msg.textContent = "Could not resend code. Try again.";
+        msg.className = "status status--error";
+        return;
+      }
+      codeInput.value = "";
+      codeInput.focus();
+      msg.hidden = false;
+      msg.textContent = "New code sent \u2014 check your email.";
+      msg.className = "status status--success";
+    });
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       msg.hidden = true;
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Verifying\u2026";
 
-      const code = /** @type {HTMLInputElement} */ (document.getElementById("code")).value.trim();
+      const code = codeInput.value.trim();
+      if (!/^\d{6}$/.test(code)) {
+        msg.hidden = false;
+        msg.textContent = "Enter a 6-digit code.";
+        msg.className = "status status--error";
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = invalid ? "Trying again\u2026" : "Verifying\u2026";
+
       const res = await fetch(apiBase + "/api/v1/auth/otp/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ email, code }),
       });
+
       if (!res.ok) {
-        msg.hidden = false;
-        msg.textContent = "Code not accepted. Try again.";
-        msg.className = "status status--error";
+        let isInvalidCode = res.status === 401;
+        if (isInvalidCode) {
+          try {
+            const body = await res.json();
+            isInvalidCode = body?.error === "invalid_code";
+          } catch {
+            /* treat 401 as invalid code */
+          }
+        }
+        if (isInvalidCode) {
+          showInvalidState();
+        } else {
+          msg.hidden = false;
+          msg.textContent = "Something went wrong. Try again.";
+          msg.className = "status status--error";
+        }
+        codeInput.value = "";
+        codeInput.focus();
         submitBtn.disabled = false;
-        submitBtn.textContent = "Verify";
+        submitBtn.textContent = invalid ? "Try again" : "Verify";
         return;
       }
+
       sessionStorage.removeItem("isin_pending_email");
-      window.location.href = "/claim";
+
+      const sitesRes = await fetch(apiBase + "/api/v1/sites/me", { credentials: "include" });
+      const sitesBody = await sitesRes.json();
+      const hasSite =
+        sitesRes.ok && Array.isArray(sitesBody.sites) && sitesBody.sites.length > 0;
+      window.location.href = hasSite ? "/dashboard" : "/claim";
     });
+
+    codeInput.focus();
   </script>
 </Layout>
