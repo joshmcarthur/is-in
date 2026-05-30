@@ -2,7 +2,7 @@
 
 A single hostname that stays yours: a profile strangers can open, short links you can change when the destination moves, and addresses at `something@username.is-in.nz` that land in inboxes you already use. That bundle is the whole product idea — no generic website hosting, no social feed, just a small set of behaviours you configure once and keep.
 
-We keep the HTML and routing boring on purpose so the interesting part is what you bring: typography and layout through CSS, where your short links point, and who receives mail for your subdomain. Delivery stays edge-close ([Cloudflare Workers](https://workers.cloudflare.com/) with KV) so the thing you operate stays small.
+We keep the HTML and routing boring on purpose so the interesting part is what you bring: typography and layout through CSS, where your short links point, and who receives mail for your subdomain. Delivery stays edge-close ([Cloudflare Workers](https://developers.cloudflare.com/workers/) with KV) so the thing you operate stays small.
 
 ## Values
 
@@ -37,40 +37,105 @@ Redirects you control: HTTP 301/302, optional expiry and title metadata, QR code
 
 Aliases (including `*@username.is-in.nz`) forward to external addresses. Forwarding only—no mailbox hosting—and destinations must be verified.
 
-## Architecture (high level)
+## Architecture (implemented baseline)
 
-- **Cloudflare Workers** — HTTP handling, redirect resolution, profile rendering, and the rest of the edge logic.
-- **Cloudflare KV** — state.
-- **Cloudflare Pages** — owner dashboard.
-- **Email Routing** — forwarding plumbing for addresses on your subdomain.
-- **Dashboard access** — passwordless, email-based session establishment (signed links, cookies) lives here too; it’s ordinary web app mechanics, not something visitors “use” as a product surface.
+- **`apps/management`** — Astro **hybrid** app on Cloudflare Pages: prerendered UI (intended `home.is-in.nz`) plus **Pages Functions** at `/api/*` for availability, OTP, session, claim, and forwarding PATCH. Binds **KV** and Cloudflare **Email Service** (`send_email`) via [`apps/management/wrangler.toml`](apps/management/wrangler.toml).
+- **`workers/public-site`** — Minimal Hono worker for `https://{site}.is-in.nz`: reads `webForwardUrl` from KV and issues HTTP redirects (or a short plain message if unset).
+- **`workers/email-inbound`** — Minimal **Email Worker**: resolves `*@{site}.is-in.nz` against KV `site:{site}` and `message.forward(emailForwardDest)` when set. Wire it in **Email Routing** after deploy.
+- **Cloudflare Pages** — `pnpm build:management` then `wrangler pages deploy` from `apps/management` (see [`scripts/deploy-pages.sh`](scripts/deploy-pages.sh)).
 
 ```mermaid
 flowchart LR
-  subgraph edge [Edge]
-    Worker[Workers]
-    KV[(KV)]
+  subgraph mgmt [Management_Pages]
+    Astro[Astro_UI]
+    Fn[Pages_Functions_api]
   end
-  subgraph ui [UI]
-    Pages[Pages_dashboard]
+  subgraph edge [Edge_Workers]
+    Public[public_site]
+    Mail[email_inbound]
   end
-  User[User_browser] --> Worker
-  Pages --> Worker
-  Worker --> KV
-  Email[Email_Routing] -.-> Worker
+  KV[(KV)]
+  Send[Email_Service_send]
+  User[Owner_browser] --> Astro
+  User --> Fn
+  Visitor[Public_browser] --> Public
+  Fn --> KV
+  Fn --> Send
+  Public --> KV
+  Mail --> KV
+  ZoneMail[Email_Routing] -.-> Mail
 ```
 
-The dashed edge to **Email_Routing** is intentional: Workers and routing integrate, but the wiring will get sharper as the repo grows past planning.
+## Hostnames and environments (multi-stage)
+
+Use one Cloudflare account with **Wrangler environments** and **separate KV namespace IDs** per env (see [ADR-0006](docs/architectural-decision-records/ADR-0006-staging-environments.md)). Use the **same KV binding IDs** on the Pages project (`apps/management/wrangler.toml`), `workers/public-site`, and `workers/email-inbound` so site records are shared.
+
+| Environment | Management (Pages + `/api`)                                   | Public HTTP worker                   | Inbound mail worker             |
+| ----------- | ------------------------------------------------------------- | ------------------------------------ | ------------------------------- |
+| Production  | `home.is-in.nz`                                               | `*.is-in.nz` → `public-site`         | Email Routing → `email-inbound` |
+| Staging     | `home-staging.is-in.nz` (separate Pages deployment or branch) | Staging routes / names as you prefer | Staging worker + **staging KV** |
+
+**Build-time:** `PUBLIC_API_BASE` is optional. Leave it empty so the UI calls **same-origin** `/api/...`. Set it only if the HTML is ever served from a different origin than the API.
+
+**No CORS allowlist** is required for the default same-host setup.
+
+## Secrets and local development
+
+1. **`SESSION_SECRET`:** copy [`apps/management/.dev.vars.example`](apps/management/.dev.vars.example) to `apps/management/.dev.vars` (required for all `/api/*` routes). Without it, API calls return `{"error":"server_misconfigured"}`. Deployed: `cd apps/management && wrangler secret put SESSION_SECRET` (and `-e staging` for staging).
+2. **KV IDs:** create namespaces with `wrangler kv namespace create "is-in-kv"` (and a staging twin). Paste IDs into **`apps/management/wrangler.toml`**, **`workers/public-site/wrangler.toml`**, and **`workers/email-inbound/wrangler.toml`** for each environment.
+3. **Routes:** point `*.is-in.nz` (excluding `home*`) at `public-site`. Attach `email-inbound` to Email Routing rules for the subdomain addresses you want dynamically forwarded.
+
+## Cloudflare Email Service (OTP)
+
+Outbound sign-in codes use the [`send_email` binding](https://developers.cloudflare.com/email-service/api/send-emails/workers-api/) on the **Pages** project (`apps/management/wrangler.toml`). Before production:
+
+1. Onboard and verify the sender domain in **Cloudflare Email Service**.
+2. Align `OTP_FROM` in `wrangler.toml` with a verified sender on that domain.
+3. Confirm daily and rate limits fit expected OTP volume on your plan.
+
+**Local OTP testing:** `astro dev` (`pnpm dev:management`) does not expose the `send_email` binding. Use **`pnpm dev:management:pages`** (build + `wrangler pages dev`) instead. After sign-in, Wrangler logs a path to a local file containing the simulated email body (including the numeric code). See [Email sending — local development](https://developers.cloudflare.com/email-service/local-development/sending/).
+
+If Email Service cannot be enabled on the zone, follow the fallback order in [ADR-0001](docs/architectural-decision-records/ADR-0001-otp-email-service.md).
+
+## Email forwarding destination (MVP)
+
+Saving a destination in the dashboard writes `emailForwardDest` on the site record in KV. **`workers/email-inbound`** forwards matching inbound mail when Email Routing delivers to that worker. You still need correct **MX / Email Routing** on the zone—see [ADR-0005](docs/architectural-decision-records/ADR-0005-inbound-email-forwarding.md).
+
+## Monorepo commands
+
+Requires [pnpm](https://pnpm.io/) (version aligned with [`package.json`](package.json) `packageManager` field).
+
+```bash
+pnpm install
+pnpm typecheck
+pnpm dev:public-site
+pnpm dev:email-inbound
+pnpm dev:management          # Astro dev — UI + API; no OTP email (send_email not in platform proxy)
+pnpm dev:management:pages    # Build + wrangler pages dev — use for OTP / email testing
+pnpm build:management
+```
+
+Deploy the management app (UI + API) to Pages:
+
+```bash
+./scripts/deploy-pages.sh
+```
+
+Deploy edge workers:
+
+```bash
+pnpm --filter public-site deploy
+pnpm --filter email-inbound deploy
+# staging:
+pnpm --filter public-site deploy:staging
+pnpm --filter email-inbound deploy:staging
+```
 
 ## Conceptual data model
 
-Each **user** ties an email address to one or more subdomains.
+Each **user** ties an email address to one or more subdomains (MVP UI assumes one site per user; KV allows a list).
 
-Each **subdomain** owns:
-
-- **profile** — bio, avatar, current status, `status_history[]`, `links[]`
-- **redirects[]** — short-link definitions
-- **email_routes[]** — forwarding rules
+Each **subdomain** owns structured fields in KV (profile and `/go` routes are not implemented in this milestone).
 
 ## What we are not building
 
@@ -96,9 +161,9 @@ You should be able to get something meaningful live quickly, feel ownership over
 
 ## Project status
 
-This repository is still mostly intent: the detailed brief is [`docs/init/PLAN.md`](docs/init/PLAN.md), and Workers, schema, and dashboard code are not here yet. There is no install or run script—this file is the map, not the engine.
+Reserve-address onboarding, the Pages-hosted control API (`/api/*`), the public redirect worker, the inbound email worker, and the Astro management app are in this repo. Profile pages, `/go` short links, and fully automated Email Routing rule creation are still to come.
 
 ## Documentation
 
 - **Product brief:** [`docs/init/PLAN.md`](docs/init/PLAN.md)
-- **Architecture decisions:** [`docs/architectural-decision-records/`](docs/architectural-decision-records/) (template in place for future ADRs)
+- **ADRs:** [`docs/architectural-decision-records/`](docs/architectural-decision-records/) — ADR-0001 … ADR-0006 for OTP, sessions, KV, workers, email MVP, staging
