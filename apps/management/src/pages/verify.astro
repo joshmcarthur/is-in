@@ -48,6 +48,23 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
     const resendBtn = /** @type {HTMLButtonElement} */ (document.getElementById("resend"));
     const codeInput = /** @type {HTMLInputElement} */ (document.getElementById("code"));
 
+    function digitsOnly(value, maxLen = 6) {
+      return value.replace(/\D/g, "").slice(0, maxLen);
+    }
+
+    function applyCodeInput(value) {
+      const next = digitsOnly(value);
+      if (codeInput.value !== next) codeInput.value = next;
+    }
+
+    codeInput.addEventListener("paste", (e) => {
+      e.preventDefault();
+      const pasted = e.clipboardData?.getData("text") ?? "";
+      applyCodeInput(pasted);
+    });
+
+    codeInput.addEventListener("input", () => applyCodeInput(codeInput.value));
+
     let invalid = false;
 
     function showInvalidState() {
@@ -86,7 +103,7 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
       e.preventDefault();
       msg.hidden = true;
 
-      const code = codeInput.value.trim();
+      const code = digitsOnly(codeInput.value);
       if (!/^\d{6}$/.test(code)) {
         msg.hidden = false;
         msg.textContent = "Enter a 6-digit code.";
