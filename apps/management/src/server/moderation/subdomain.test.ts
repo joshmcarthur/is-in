@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createMockAi } from "../testing/mockAi";
-import { moderateSubdomain, parseModerationVerdict } from "./subdomain";
+import { extractModerationVerdict, moderateSubdomain, parseModerationVerdict } from "./subdomain";
 
 describe("parseModerationVerdict", () => {
   it("parses allowed verdict", () => {
@@ -29,6 +29,31 @@ describe("parseModerationVerdict", () => {
   });
 });
 
+describe("extractModerationVerdict", () => {
+  it("parses string JSON in response field", () => {
+    expect(
+      extractModerationVerdict({
+        response: '{"allowed": false, "reason": "brand impersonation"}',
+      }),
+    ).toEqual({ allowed: false, reason: "brand impersonation" });
+  });
+
+  it("parses parsed object in response field", () => {
+    expect(
+      extractModerationVerdict({
+        response: { allowed: false, reason: "brand impersonation" },
+      }),
+    ).toEqual({ allowed: false, reason: "brand impersonation" });
+  });
+
+  it("parses top-level verdict object", () => {
+    expect(extractModerationVerdict({ allowed: true, reason: null })).toEqual({
+      allowed: true,
+      reason: null,
+    });
+  });
+});
+
 describe("moderateSubdomain", () => {
   it("allows benign names", async () => {
     const ai = createMockAi({ allowed: true, reason: null });
@@ -39,6 +64,18 @@ describe("moderateSubdomain", () => {
   it("rejects policy violations", async () => {
     const ai = createMockAi({ allowed: false, reason: "brand impersonation" });
     await expect(moderateSubdomain(ai, "paypal-support")).resolves.toEqual({
+      ok: false,
+      reason: "policy",
+    });
+  });
+
+  it("rejects when Workers AI returns parsed object response", async () => {
+    const ai = {
+      run: async () => ({
+        response: { allowed: false, reason: "brand impersonation" },
+      }),
+    } as unknown as Ai;
+    await expect(moderateSubdomain(ai, "paypal")).resolves.toEqual({
       ok: false,
       reason: "policy",
     });

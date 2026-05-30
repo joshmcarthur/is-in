@@ -24,13 +24,67 @@ Treat hyphenated and concatenated forms as equivalent (pay-pal is the same as pa
 Respond with JSON only, no markdown: {"allowed": boolean, "reason": string | null}
 Set reason to a brief explanation when allowed is false; use null when allowed is true.`;
 
-function extractResponseText(result: unknown): string | null {
-  if (typeof result === "string") return result;
-  if (result && typeof result === "object") {
-    const r = result as { response?: unknown; result?: unknown };
-    if (typeof r.response === "string") return r.response;
-    if (typeof r.result === "string") return r.result;
+function normalizeVerdict(value: Partial<ModerationVerdict>): ModerationVerdict | null {
+  if (typeof value.allowed !== "boolean") return null;
+  const reason =
+    value.reason === null || value.reason === undefined
+      ? null
+      : typeof value.reason === "string"
+        ? value.reason
+        : null;
+  return { allowed: value.allowed, reason };
+}
+
+/** Accept string JSON, parsed objects, and common Workers AI response wrappers. */
+export function extractModerationVerdict(result: unknown): ModerationVerdict | null {
+  if (typeof result === "string") return parseModerationVerdict(result);
+  if (!result || typeof result !== "object") return null;
+
+  const root = result as Record<string, unknown>;
+
+  if (typeof root.allowed === "boolean") {
+    return normalizeVerdict(root as Partial<ModerationVerdict>);
   }
+
+  const response = root.response;
+  if (typeof response === "string") {
+    return parseModerationVerdict(response);
+  }
+  if (response && typeof response === "object") {
+    const verdict = normalizeVerdict(response as Partial<ModerationVerdict>);
+    if (verdict) return verdict;
+  }
+
+  const nested = root.result;
+  if (typeof nested === "string") {
+    return parseModerationVerdict(nested);
+  }
+  if (nested && typeof nested === "object") {
+    const nestedRecord = nested as Record<string, unknown>;
+    if (typeof nestedRecord.allowed === "boolean") {
+      return normalizeVerdict(nestedRecord as Partial<ModerationVerdict>);
+    }
+    const nestedResponse = nestedRecord.response;
+    if (typeof nestedResponse === "string") {
+      return parseModerationVerdict(nestedResponse);
+    }
+    if (nestedResponse && typeof nestedResponse === "object") {
+      return normalizeVerdict(nestedResponse as Partial<ModerationVerdict>);
+    }
+  }
+
+  const choices = root.choices;
+  if (Array.isArray(choices)) {
+    for (const choice of choices) {
+      if (!choice || typeof choice !== "object") continue;
+      const message = (choice as { message?: { content?: unknown } }).message;
+      if (typeof message?.content === "string") {
+        const verdict = parseModerationVerdict(message.content);
+        if (verdict) return verdict;
+      }
+    }
+  }
+
   return null;
 }
 
@@ -87,15 +141,13 @@ export async function moderateSubdomain(ai: Ai, subdomain: string): Promise<Mode
       MODERATION_TIMEOUT_MS,
     );
 
-    const text = extractResponseText(result);
-    if (!text) {
-      console.error("subdomain_moderation: empty model response", { subdomain });
-      return { ok: false, reason: "unavailable" };
-    }
-
-    const verdict = parseModerationVerdict(text);
+    const verdict = extractModerationVerdict(result);
     if (!verdict) {
-      console.error("subdomain_moderation: unparseable model response", { subdomain, text });
+      console.error("subdomain_moderation: empty model response", {
+        subdomain,
+        resultType: typeof result,
+        resultKeys: result && typeof result === "object" ? Object.keys(result) : [],
+      });
       return { ok: false, reason: "unavailable" };
     }
 
