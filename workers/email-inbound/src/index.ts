@@ -1,21 +1,17 @@
-import { siteKey, type SiteRecord } from "@is-in/shared";
+import { type SiteRecord, siteKey } from "@is-in/shared";
+import { parseRecipientTo } from "./parse-recipient.js";
 
 export type EmailEnv = {
   KV: KVNamespace;
   ROOT_DOMAIN: string;
 };
 
-/** Extract `addr@subdomain.root` from common To header shapes. */
-function parseRecipientTo(toRaw: string): string | null {
-  const t = toRaw.trim();
-  const angle = t.match(/<([^>]+@[^>]+)>/);
-  if (angle?.[1]) return angle[1].trim();
-  const bare = t.match(/[\w.+-]+@[\w.-]+\.[a-z]{2,}/i);
-  return bare?.[0]?.trim() ?? null;
-}
-
 export default {
-  async email(message: ForwardableEmailMessage, env: EmailEnv, _ctx: ExecutionContext): Promise<void> {
+  async email(
+    message: ForwardableEmailMessage,
+    env: EmailEnv,
+    _ctx: ExecutionContext,
+  ): Promise<void> {
     const root = (env.ROOT_DOMAIN || "is-in.nz").toLowerCase();
     const toHeader = message.headers.get("to") ?? message.headers.get("To") ?? "";
     const addr = parseRecipientTo(toHeader);

@@ -1,10 +1,10 @@
 import {
   canonicalEmail,
   isValidSubdomain,
-  siteKey,
-  userKey,
   type SiteRecord,
+  siteKey,
   type UserRecord,
+  userKey,
 } from "@is-in/shared";
 import { json } from "../http";
 import { readSession } from "../session";
@@ -91,7 +91,9 @@ export const postSitesClaim: ControlPlaneHandler = async (request, env) => {
 export const patchSiteForwarding: ControlPlaneHandler = async (request, env, segments) => {
   const s = await readSession(request, env);
   if (!s) return json({ error: "unauthorized" }, 401);
-  const subdomain = decodeURIComponent(segments[2]!).trim().toLowerCase();
+  const segment = segments[2];
+  if (!segment) return json({ error: "invalid_subdomain" }, 400);
+  const subdomain = decodeURIComponent(segment).trim().toLowerCase();
   if (!isValidSubdomain(subdomain)) {
     return json({ error: "invalid_subdomain" }, 400);
   }

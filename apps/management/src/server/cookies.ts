@@ -22,7 +22,12 @@ function isLocalHost(host: string): boolean {
   );
 }
 
-export function appendSessionCookie(headers: Headers, sid: string, host: string, maxAge: number): void {
+export function appendSessionCookie(
+  headers: Headers,
+  sid: string,
+  host: string,
+  maxAge: number,
+): void {
   const localDev = isLocalHost(host);
   const parts = [
     `${SESSION_COOKIE}=${encodeURIComponent(sid)}`,

@@ -1,4 +1,4 @@
-import { sessionKey, type SessionRecord } from "@is-in/shared";
+import { type SessionRecord, sessionKey } from "@is-in/shared";
 import { getCookie, SESSION_COOKIE } from "./cookies";
 import type { ManagementEnv } from "./env";
 

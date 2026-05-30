@@ -1,7 +1,25 @@
-import { canonicalEmail, otpKey, sessionKey, type OtpRecord, type SessionRecord } from "@is-in/shared";
+import {
+  canonicalEmail,
+  type OtpRecord,
+  otpKey,
+  type SessionRecord,
+  sessionKey,
+} from "@is-in/shared";
 import { appendSessionCookie } from "../cookies";
 import { hmacSha256Hex, randomOtp6, randomSessionId, timingSafeEqualHex } from "../crypto";
 import { json } from "../http";
+import {
+  buildRateLimitKey,
+  consumeRateLimit,
+  OTP_START_EMAIL_IP_LIMIT,
+  OTP_START_EMAIL_IP_WINDOW_SEC,
+  OTP_START_EMAIL_LIMIT,
+  OTP_START_EMAIL_WINDOW_SEC,
+  OTP_VERIFY_EMAIL_IP_LIMIT,
+  OTP_VERIFY_IP_LIMIT,
+  OTP_VERIFY_WINDOW_SEC,
+  rateLimitBucket,
+} from "../rateLimit";
 import { SESSION_TTL_SEC } from "../session";
 import { isValidDestinationEmail } from "../validate";
 import type { ControlPlaneHandler } from "./types";
@@ -9,9 +27,8 @@ import type { ControlPlaneHandler } from "./types";
 const OTP_TTL_SEC = 60 * 10;
 const MAX_OTP_ATTEMPTS = 8;
 
-async function shortHash(secret: string, msg: string): Promise<string> {
-  const h = await hmacSha256Hex(secret, msg);
-  return h.slice(0, 16);
+function clientIp(request: Request): string {
+  return request.headers.get("cf-connecting-ip") ?? "unknown";
 }
 
 export const postOtpStart: ControlPlaneHandler = async (request, env) => {
@@ -26,13 +43,30 @@ export const postOtpStart: ControlPlaneHandler = async (request, env) => {
     return json({ ok: true });
   }
   const email = canonicalEmail(emailRaw);
-  const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
-  const rlKey = `rl:otp:${await shortHash(env.SESSION_SECRET, email + ":" + ip)}`;
-  const rl = await env.KV.get(rlKey);
-  if (rl && parseInt(rl, 10) >= 5) {
+  const ip = clientIp(request);
+  const secret = env.SESSION_SECRET;
+
+  const emailBucket = await rateLimitBucket(secret, email);
+  const emailRl = await consumeRateLimit(
+    env.KV,
+    buildRateLimitKey("otp-start-email", emailBucket),
+    OTP_START_EMAIL_LIMIT,
+    OTP_START_EMAIL_WINDOW_SEC,
+  );
+  if (!emailRl.allowed) {
     return json({ ok: true });
   }
-  await env.KV.put(rlKey, String((rl ? parseInt(rl, 10) : 0) + 1), { expirationTtl: 900 });
+
+  const emailIpBucket = await rateLimitBucket(secret, email, ip);
+  const emailIpRl = await consumeRateLimit(
+    env.KV,
+    buildRateLimitKey("otp-start", emailIpBucket),
+    OTP_START_EMAIL_IP_LIMIT,
+    OTP_START_EMAIL_IP_WINDOW_SEC,
+  );
+  if (!emailIpRl.allowed) {
+    return json({ ok: true });
+  }
 
   const code = randomOtp6();
   const hash = await hmacSha256Hex(env.SESSION_SECRET, `otp:${email}:${code}`);
@@ -60,6 +94,19 @@ export const postOtpStart: ControlPlaneHandler = async (request, env) => {
 
 export const postOtpVerify: ControlPlaneHandler = async (request, env) => {
   const host = request.headers.get("host") ?? "";
+  const ip = clientIp(request);
+  const secret = env.SESSION_SECRET;
+
+  const ipBucket = await rateLimitBucket(secret, ip);
+  const ipRl = await consumeRateLimit(
+    env.KV,
+    buildRateLimitKey("otp-verify-ip", ipBucket),
+    OTP_VERIFY_IP_LIMIT,
+    OTP_VERIFY_WINDOW_SEC,
+  );
+  if (!ipRl.allowed) {
+    return json({ error: "invalid_code" }, 401);
+  }
 
   let body: { email?: string; code?: string };
   try {
@@ -73,6 +120,18 @@ export const postOtpVerify: ControlPlaneHandler = async (request, env) => {
     return json({ error: "invalid_request" }, 400);
   }
   const email = canonicalEmail(emailRaw);
+
+  const emailIpBucket = await rateLimitBucket(secret, email, ip);
+  const emailIpRl = await consumeRateLimit(
+    env.KV,
+    buildRateLimitKey("otp-verify", emailIpBucket),
+    OTP_VERIFY_EMAIL_IP_LIMIT,
+    OTP_VERIFY_WINDOW_SEC,
+  );
+  if (!emailIpRl.allowed) {
+    return json({ error: "invalid_code" }, 401);
+  }
+
   const key = otpKey(email);
   const raw = await env.KV.get(key);
   if (!raw) {
@@ -99,7 +158,9 @@ export const postOtpVerify: ControlPlaneHandler = async (request, env) => {
 
   const sid = randomSessionId();
   const sess: SessionRecord = { email, exp: now + SESSION_TTL_SEC };
-  await env.KV.put(sessionKey(sid), JSON.stringify(sess), { expirationTtl: SESSION_TTL_SEC + 3600 });
+  await env.KV.put(sessionKey(sid), JSON.stringify(sess), {
+    expirationTtl: SESSION_TTL_SEC + 3600,
+  });
 
   const headers = new Headers();
   appendSessionCookie(headers, sid, host, SESSION_TTL_SEC);

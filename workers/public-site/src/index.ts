@@ -1,4 +1,4 @@
-import { siteKey, type SiteRecord } from "@is-in/shared";
+import { type SiteRecord, siteKey } from "@is-in/shared";
 import { Hono } from "hono";
 
 export type PublicEnv = {

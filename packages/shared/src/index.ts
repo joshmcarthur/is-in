@@ -38,6 +38,11 @@ export function sessionKey(sessionId: string): string {
   return `session:${sessionId}`;
 }
 
+/** Coarse rate-limit counters (see ADR-0003). `bucket` should be a hashed or opaque id. */
+export function ratelimitKey(scope: string, bucket: string): string {
+  return `ratelimit:${scope}:${bucket}`;
+}
+
 /** Lowercase email; minimal normalisation (full IDNA left to clients / later). */
 export function canonicalEmail(email: string): string {
   const t = email.trim();

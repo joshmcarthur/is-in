@@ -1,11 +1,16 @@
-import { postAvailability } from "./handlers/availability";
+import type { ManagementEnv } from "./env";
 import { postOtpStart, postOtpVerify } from "./handlers/auth";
+import { postAvailability } from "./handlers/availability";
 import { getHealth } from "./handlers/health";
 import { deleteSession, getSessionMe } from "./handlers/session";
-import { getSitesMe, matchesPatchSiteForwarding, patchSiteForwarding, postSitesClaim } from "./handlers/sites";
+import {
+  getSitesMe,
+  matchesPatchSiteForwarding,
+  patchSiteForwarding,
+  postSitesClaim,
+} from "./handlers/sites";
 import type { ControlPlaneHandler } from "./handlers/types";
 import { json } from "./http";
-import type { ManagementEnv } from "./env";
 
 type RouteEntry = {
   method: string;
