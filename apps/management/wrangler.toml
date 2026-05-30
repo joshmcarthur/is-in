@@ -1,8 +1,13 @@
-# Cloudflare Pages + Astro (control plane API runs as Pages Functions).
+# Cloudflare Worker + Astro (control plane API at /api/*).
 # Replace KV IDs before deploy. Secrets: `wrangler secret put SESSION_SECRET` (from apps/management).
 name = "is-in-management"
 compatibility_date = "2025-01-01"
-pages_build_output_dir = "dist"
+main = "@astrojs/cloudflare/entrypoints/server"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+run_worker_first = ["/*", "!/_astro/*"]
 
 [[kv_namespaces]]
 binding = "KV"
@@ -19,10 +24,15 @@ name = "EMAIL"
 
 [ai]
 binding = "AI"
+remote = true
 
 [env.staging]
 name = "is-in-management-staging"
-pages_build_output_dir = "dist"
+
+[env.staging.assets]
+directory = "./dist"
+binding = "ASSETS"
+run_worker_first = ["/*", "!/_astro/*"]
 
 [[env.staging.kv_namespaces]]
 binding = "KV"
@@ -38,3 +48,4 @@ name = "EMAIL"
 
 [env.staging.ai]
 binding = "AI"
+remote = true

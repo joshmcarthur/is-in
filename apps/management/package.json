@@ -5,19 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "dev:pages": "astro build && wrangler pages dev dist",
+    "dev:pages": "astro build && wrangler dev",
     "build": "astro build",
     "preview": "astro preview",
     "typecheck": "astro check",
     "test": "vitest run"
   },
   "dependencies": {
-    "@astrojs/cloudflare": "^11.2.0",
+    "@astrojs/cloudflare": "^13.6.0",
     "@is-in/shared": "workspace:*",
-    "astro": "^4.16.0"
+    "astro": "^6.1.6"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.4",
+    "@astrojs/check": "^0.9.9",
     "@cloudflare/workers-types": "^4.20260530.1",
     "typescript": "^6.0.3",
     "wrangler": "^4.95.0"

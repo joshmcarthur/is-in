@@ -21,5 +21,10 @@
     "@cloudflare/vitest-pool-workers": "^0.16.10",
     "vite": "^8.0.14",
     "vitest": "^4.1.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "devalue": ">=5.8.1"
+    }
   }
 }

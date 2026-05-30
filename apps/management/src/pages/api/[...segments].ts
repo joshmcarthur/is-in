@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import type { APIRoute } from "astro";
 import { routeControlPlane } from "../../server/controlPlane";
 import type { ManagementEnv } from "../../server/env";
@@ -12,8 +13,7 @@ function parseSegments(param: string | undefined): string[] {
 
 const handle: APIRoute = async (context) => {
   const segments = parseSegments(context.params.segments);
-  const env = context.locals.runtime.env as ManagementEnv;
-  const res = await routeControlPlane(context.request, env, segments);
+  const res = await routeControlPlane(context.request, env as ManagementEnv, segments);
   return res ?? jsonNotFound();
 };
 

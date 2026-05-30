@@ -10,22 +10,16 @@ interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
 
-declare namespace App {
-  interface Locals {
-    runtime: {
-      env: {
-        KV: KVNamespace;
-        AI: Ai;
-        EMAIL?: SendEmail;
-        SESSION_SECRET: string;
-        OTP_FROM: string;
-        OTP_SUBJECT: string;
-        SUBDOMAIN_MODERATION?: string;
-        ASSETS?: Fetcher;
-      };
-      cf: IncomingRequestCfProperties | undefined;
-      caches: CacheStorage;
-      ctx: { waitUntil: (p: Promise<unknown>) => void };
-    };
+declare namespace Cloudflare {
+  interface Env {
+    KV: KVNamespace;
+    AI: Ai;
+    EMAIL?: SendEmail;
+    SESSION_SECRET: string;
+    OTP_FROM: string;
+    OTP_SUBJECT: string;
+    /** Set to `"off"` in local dev to skip Workers AI moderation. Never use in staging/production. */
+    SUBDOMAIN_MODERATION?: string;
+    ASSETS?: Fetcher;
   }
 }

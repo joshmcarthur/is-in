@@ -12,4 +12,4 @@ mgmt="${root}/apps/management"
   pnpm build:management
 )
 cd "${mgmt}"
-exec npx --yes wrangler@latest pages deploy dist --project-name="${CLOUDFLARE_PAGES_PROJECT_NAME:-is-in}"
+exec npx --yes wrangler@latest deploy
