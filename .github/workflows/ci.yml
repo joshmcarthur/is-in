@@ -32,6 +32,8 @@ jobs:
         run: pnpm exec biome ci .
 
       - name: Typecheck
+        env:
+          CI: true
         run: pnpm typecheck
 
       - name: Test
