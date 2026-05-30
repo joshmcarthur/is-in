@@ -26,7 +26,7 @@ CI also runs `pnpm audit --audit-level=high` and [Gitleaks](https://github.com/g
 ## Tooling
 
 - **Biome** — linting and formatting for TypeScript, JSON, Markdown, and Astro frontmatter. Use the [Biome VS Code extension](https://biomejs.dev/reference/vscode/) with format-on-save.
-- **Vitest** — unit tests for `@is-in/shared` and pure management server modules; `@cloudflare/vitest-pool-workers` for the `public-site` worker.
+- **Vitest** — unit tests for `@is-in/shared` and management server modules (`*.test.ts` colocated with source); control-plane tests use `routeControlPlane` + in-memory KV helpers in `apps/management/src/server/testing/`; `@cloudflare/vitest-pool-workers` for the `public-site` worker.
 
 ## Tests for new work
 
@@ -36,7 +36,7 @@ Add or extend tests when changing:
 - OTP, session, or forwarding security behaviour
 - Worker routing (redirects, inbound email parsing)
 
-Integration tests for the full management API (KV, Email Service) are deferred; see ADRs for intended behaviour.
+Management API tests exercise `routeControlPlane` with an in-memory KV mock (`controlPlane.test.ts`, `availability.test.ts`, `otp.test.ts`, `session.test.ts`, `sites.test.ts`, and helpers in `src/server/testing/`). They do not run Astro or Wrangler Pages; the `public-site` worker uses the Cloudflare Vitest pool instead.
 
 ## Optional later
 
