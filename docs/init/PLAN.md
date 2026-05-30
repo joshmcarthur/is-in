@@ -81,14 +81,14 @@ anything@username.is-in.nz
 
 ---
 
-### 4. Magic Link Authentication
+### 4. Passwordless email authentication (MVP: numeric OTP)
 
-Authentication is handled via passwordless email login.
+Authentication is handled via passwordless email login. For the **reserve-address MVP**, sign-in uses a **numeric one-time code** emailed to the user (see [ADR-0001](../architectural-decision-records/ADR-0001-otp-email-service.md)). Magic links remain a plausible later UX variant.
 
-### Flow:
+### Flow (MVP):
 1. User enters email
-2. System sends magic login link
-3. User clicks link to establish session
+2. System emails a short-lived numeric code
+3. User enters the code to establish session
 4. Session grants access to their namespace
 
 ### Features:
