@@ -11,8 +11,8 @@ run_worker_first = ["/*", "!/_astro/*"]
 
 [[kv_namespaces]]
 binding = "KV"
-id = "00000000-0000-0000-0000-000000000001"
-preview_id = "00000000-0000-0000-0000-000000000001"
+id = "779184d4ccd842dda9a33fb40845fa85"
+preview_id = "2d733b8ee95746f6bdd3693ef2de6b7d"
 
 [vars]
 OTP_FROM = "noreply@is-in.nz"
@@ -36,12 +36,12 @@ run_worker_first = ["/*", "!/_astro/*"]
 
 [[env.staging.kv_namespaces]]
 binding = "KV"
-id = "00000000-0000-0000-0000-000000000002"
-preview_id = "00000000-0000-0000-0000-000000000002"
+id = "f3578122d7424930ab2d78c34abdf22c"
+preview_id = "f6d6ae7d37e44bb987df340aaebdd17b"
 
 [env.staging.vars]
 OTP_FROM = "noreply@is-in.nz"
-OTP_SUBJECT = "Your is-in.nz sign-in code (staging)"
+OTP_SUBJECT = "Your is-in.nz sign-in code (test)"
 
 [[env.staging.send_email]]
 name = "EMAIL"
@@ -49,3 +49,7 @@ name = "EMAIL"
 [env.staging.ai]
 binding = "AI"
 remote = true
+
+[[env.staging.routes]]
+pattern = "test.is-in.nz/*"
+zone_name = "is-in.nz"
