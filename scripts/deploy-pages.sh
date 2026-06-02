@@ -1,15 +1,4 @@
 #!/usr/bin/env bash
+# Deploy management to production (alias for deploy-management.sh).
 set -euo pipefail
-root="$(cd "$(dirname "$0")/.." && pwd)"
-mgmt="${root}/apps/management"
-(
-  cd "${root}"
-  if ! command -v pnpm >/dev/null 2>&1; then
-    echo "pnpm is required (see README)." >&2
-    exit 1
-  fi
-  pnpm install
-  pnpm build:management
-)
-cd "${mgmt}"
-exec npx --yes wrangler@latest deploy
+exec "$(cd "$(dirname "$0")" && pwd)/deploy-management.sh" production

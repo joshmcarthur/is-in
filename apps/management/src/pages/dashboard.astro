@@ -2,6 +2,7 @@
 export const prerender = true;
 
 import Layout from "../layouts/Layout.astro";
+import { ROOT_DOMAIN } from "../siteDomain";
 
 const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
 const docsUrl = "https://github.com/joshmcarthur/is-in#readme";
@@ -111,7 +112,7 @@ const contactUrl = "https://github.com/joshmcarthur/is-in/issues";
     </footer>
   </div>
 
-  <script is:inline define:vars={{ apiBase }}>
+  <script is:inline define:vars={{ apiBase, ROOT_DOMAIN }}>
     const siteHost = /** @type {HTMLElement} */ (document.getElementById("site-host"));
     const aliasesDesc = /** @type {HTMLElement} */ (document.getElementById("aliases-desc"));
     const viewPage = /** @type {HTMLAnchorElement} */ (document.getElementById("view-page"));
@@ -135,7 +136,7 @@ const contactUrl = "https://github.com/joshmcarthur/is-in/issues";
       }
 
       const sub = body.sites[0].subdomain;
-      const host = sub + ".is-in.nz";
+      const host = sub + "." + ROOT_DOMAIN;
       siteHost.textContent = host;
       aliasesDesc.textContent = "Create @" + host + " addresses";
       viewPage.href = "https://" + host;

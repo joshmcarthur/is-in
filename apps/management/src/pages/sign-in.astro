@@ -2,6 +2,7 @@
 export const prerender = true;
 
 import Layout from "../layouts/Layout.astro";
+import { ROOT_DOMAIN } from "../siteDomain";
 
 const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
 ---
@@ -26,11 +27,12 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
     <p id="msg" class="status" role="alert" hidden></p>
     <p>Don't have an account? <a href="/claim">Claim a name</a></p>
   </div>
-  <script is:inline define:vars={{ apiBase }}>
+  <script is:inline define:vars={{ apiBase, ROOT_DOMAIN }}>
     const pendingSub = sessionStorage.getItem("isin_pending_subdomain");
     if (pendingSub) {
       const lede = /** @type {HTMLElement} */ (document.getElementById("lede"));
-      lede.textContent = "Sign in to reserve " + pendingSub + ".is-in.nz. We\u2019ll email you a code.";
+      lede.textContent =
+        "Sign in to reserve " + pendingSub + "." + ROOT_DOMAIN + ". We\u2019ll email you a code.";
     }
 
     const form = /** @type {HTMLFormElement} */ (document.getElementById("form"));

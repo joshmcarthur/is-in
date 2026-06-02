@@ -2,6 +2,7 @@
 export const prerender = true;
 
 import Layout from "../layouts/Layout.astro";
+import { ROOT_DOMAIN } from "../siteDomain";
 
 const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
 ---
@@ -19,7 +20,7 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
     </form>
     <p id="msg" class="status" role="status" aria-live="polite"></p>
   </div>
-  <script is:inline define:vars={{ apiBase }}>
+  <script is:inline define:vars={{ apiBase, ROOT_DOMAIN }}>
     const form = /** @type {HTMLFormElement} */ (document.getElementById("form"));
     const msg = /** @type {HTMLElement} */ (document.getElementById("msg"));
     const hostpreview = /** @type {HTMLElement} */ (document.getElementById("hostpreview"));
@@ -40,7 +41,7 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
       }
       const site = body.sites[0];
       const sub = site.subdomain;
-      hostpreview.textContent = sub + ".is-in.nz";
+      hostpreview.textContent = sub + "." + ROOT_DOMAIN;
       web.value = site.webForwards?.["*"]?.url || "";
     }
 

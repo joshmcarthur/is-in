@@ -9,7 +9,7 @@
 
 ## Context
 
-The management UI is Astro on `home.is-in.nz` (or `home-staging.is-in.nz`), deployed to **Cloudflare Pages** with **hybrid** output: prerendered HTML plus **Pages Functions** for `/api/*`. Sessions must stay **httpOnly** and **Secure** in production.
+The management UI is Astro on `home.is-in.nz` (or `test.is-in.nz` for staging), deployed to **Cloudflare Pages** with **hybrid** output: prerendered HTML plus **Pages Functions** for `/api/*`. Sessions must stay **httpOnly** and **Secure** in production.
 
 ## Decision Drivers
 

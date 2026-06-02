@@ -1,5 +1,6 @@
 import { resolveWebForward, type SiteRecord, siteKey } from "@is-in/shared";
 import { Hono } from "hono";
+import { parseSiteHost } from "./parse-site-host";
 
 export type PublicEnv = {
   KV: KVNamespace;
@@ -7,17 +8,6 @@ export type PublicEnv = {
 };
 
 const app = new Hono<{ Bindings: PublicEnv }>();
-
-function parseSiteHost(host: string, rootDomain: string): string | null {
-  const h = host.split(":")[0]?.toLowerCase() ?? "";
-  const root = rootDomain.toLowerCase();
-  if (h === root || h === `www.${root}`) return null;
-  const suffix = `.${root}`;
-  if (!h.endsWith(suffix)) return null;
-  const sub = h.slice(0, -suffix.length);
-  if (!sub || sub.includes(".")) return null;
-  return sub;
-}
 
 app.all("*", async (c) => {
   const host = c.req.header("host") ?? "";

@@ -73,7 +73,7 @@ Use one Cloudflare account with **Wrangler environments** and **separate KV name
 | Environment | Management (Pages + `/api`)                                   | Public HTTP worker                   | Inbound mail worker             |
 | ----------- | ------------------------------------------------------------- | ------------------------------------ | ------------------------------- |
 | Production  | `home.is-in.nz`                                               | `*.is-in.nz` → `public-site`         | Email Routing → `email-inbound` |
-| Staging     | `home-staging.is-in.nz` (separate Pages deployment or branch) | Staging routes / names as you prefer | Staging worker + **staging KV** |
+| Staging     | `test.is-in.nz` (dashboard + `/api`)                          | `*.test.is-in.nz` → `public-site`    | Staging worker + **staging KV** |
 
 **Build-time:** `PUBLIC_API_BASE` is optional. Leave it empty so the UI calls **same-origin** `/api/...`. Set it only if the HTML is ever served from a different origin than the API.
 
@@ -118,18 +118,22 @@ pnpm dev:management:pages    # Build + wrangler pages dev — use for OTP / emai
 pnpm build:management
 ```
 
-Deploy the management app (UI + API) to Pages:
+Deploy the management app (UI + API):
 
 ```bash
-./scripts/deploy-pages.sh
+pnpm deploy:management              # production (home.is-in.nz)
+pnpm deploy:management:staging      # staging (test.is-in.nz)
+# or: ./scripts/deploy-management.sh [production|staging]
 ```
+
+Staging uses `ROOT_DOMAIN=test.is-in.nz` so claimed names are `you.test.is-in.nz`. The dashboard is at the apex `test.is-in.nz`. Set `PUBLIC_ROOT_DOMAIN` at build time via the deploy script (do not rely on `wrangler deploy -e staging` alone with Astro 6).
 
 Deploy edge workers:
 
 ```bash
 pnpm --filter public-site deploy
 pnpm --filter email-inbound deploy
-# staging:
+# staging (*.test.is-in.nz — configure Email Routing for mail):
 pnpm --filter public-site deploy:staging
 pnpm --filter email-inbound deploy:staging
 ```

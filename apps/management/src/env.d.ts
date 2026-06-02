@@ -4,6 +4,9 @@
 
 interface ImportMetaEnv {
   readonly PUBLIC_API_BASE?: string;
+  /** Site suffix for UI copy, e.g. `is-in.nz` or `test.is-in.nz`. */
+  readonly PUBLIC_ROOT_DOMAIN?: string;
+  readonly PUBLIC_SITE_URL?: string;
 }
 
 interface ImportMeta {

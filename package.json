@@ -14,7 +14,9 @@
     "dev:email-inbound": "pnpm --filter email-inbound dev",
     "dev:management": "pnpm --filter management dev",
     "dev:management:pages": "pnpm --filter management dev:pages",
-    "build:management": "pnpm --filter management build"
+    "build:management": "pnpm --filter management build",
+    "deploy:management": "bash scripts/deploy-management.sh production",
+    "deploy:management:staging": "bash scripts/deploy-management.sh staging"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.16",

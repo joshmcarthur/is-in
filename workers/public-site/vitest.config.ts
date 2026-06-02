@@ -5,6 +5,7 @@ export default defineConfig({
   test: {
     name: "public-site",
     include: ["src/**/*.test.ts"],
+    environmentMatchGlobs: [["src/parse-site-host.test.ts", "node"]],
   },
   plugins: [
     cloudflareTest({

@@ -2,6 +2,7 @@
 export const prerender = true;
 
 import Layout from "../layouts/Layout.astro";
+import { ROOT_DOMAIN } from "../siteDomain";
 
 const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
 ---
@@ -9,7 +10,7 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
   <a class="back-link" href="/">‹ Back</a>
   <div class="stack">
     <h2 class="h2">Claim your name</h2>
-    <p class="lede">This will be your unique address on is-in.nz.</p>
+    <p class="lede">This will be your unique address on {ROOT_DOMAIN}.</p>
     <form id="form" class="stack" novalidate>
       <div class="input-suffix">
         <input
@@ -21,7 +22,7 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
           required
           aria-describedby="avail"
         />
-        <span class="suffix" aria-hidden="true">.is-in.nz</span>
+        <span class="suffix" aria-hidden="true">.{ROOT_DOMAIN}</span>
       </div>
       <p id="avail" class="status" role="status" aria-live="polite"></p>
       <button type="submit" class="btn btn-primary" id="continue" disabled>Continue</button>
@@ -29,7 +30,7 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
     </form>
     <p id="msg" class="status" role="alert" hidden></p>
   </div>
-  <script is:inline define:vars={{ apiBase }}>
+  <script is:inline define:vars={{ apiBase, ROOT_DOMAIN }}>
     const PENDING_SUB_KEY = "isin_pending_subdomain";
 
     async function me() {
@@ -75,7 +76,9 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
       guestHint.textContent =
         "We\u2019ll email you a code, then bring you back to reserve " +
         lastAvailableSubdomain +
-        ".is-in.nz.";
+        "." +
+        ROOT_DOMAIN +
+        ".";
     }
 
     function clearAvail() {
@@ -88,7 +91,7 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
     }
 
     function setAvailSuccess(subdomain) {
-      avail.textContent = "\u2713 " + subdomain + ".is-in.nz is available!";
+      avail.textContent = "\u2713 " + subdomain + "." + ROOT_DOMAIN + " is available!";
       avail.className = "status status--success";
       continueBtn.disabled = false;
       lastAvailableSubdomain = subdomain;
@@ -133,7 +136,7 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
           setAvailError("Use letters, numbers, and hyphens.");
           return;
         }
-        setAvailError(name + ".is-in.nz is not available.");
+        setAvailError(name + "." + ROOT_DOMAIN + " is not available.");
       }, 300);
     }
 
