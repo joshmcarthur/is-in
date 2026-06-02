@@ -91,7 +91,7 @@ Outbound sign-in codes use the [`send_email` binding](https://developers.cloudfl
 
 1. Onboard and verify the sender domain in **Cloudflare Email Service**.
 2. Align `OTP_FROM` in `wrangler.toml` with a verified sender on that domain.
-3. Confirm daily and rate limits fit expected OTP volume on your plan.
+3. Confirm daily and rate limits fit expected OTP volume on your plan. **Email Sending from Workers requires a paid Workers plan**; if send fails, `/api/v1/auth/otp/start` returns `503` with `{ "error": "email_unavailable" }` (OTP is not stored until send succeeds).
 
 **Local OTP testing:** `astro dev` (`pnpm dev:management`) does not expose the `send_email` binding. Use **`pnpm dev:management:pages`** (build + `wrangler pages dev`) instead. After sign-in, Wrangler logs a path to a local file containing the simulated email body (including the numeric code). See [Email sending — local development](https://developers.cloudflare.com/email-service/local-development/sending/).
 

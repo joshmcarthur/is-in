@@ -28,6 +28,34 @@ import type { ControlPlaneHandler } from "./types";
 const OTP_TTL_SEC = 60 * 10;
 const MAX_OTP_ATTEMPTS = 8;
 
+async function deliverOtpEmail(
+  env: Parameters<ControlPlaneHandler>[1],
+  email: string,
+  code: string,
+): Promise<boolean> {
+  if (!env.EMAIL) {
+    console.warn("EMAIL binding missing; OTP not sent");
+    return false;
+  }
+  try {
+    const { html, text } = buildOtpEmailContent({
+      code,
+      expiresMinutes: OTP_TTL_SEC / 60,
+    });
+    await env.EMAIL.send({
+      from: env.OTP_FROM,
+      to: email,
+      subject: env.OTP_SUBJECT,
+      html,
+      text,
+    });
+    return true;
+  } catch (e) {
+    console.error("otp_email_send_failed", e);
+    return false;
+  }
+}
+
 function clientIp(request: Request): string {
   return request.headers.get("cf-connecting-ip") ?? "unknown";
 }
@@ -70,30 +98,15 @@ export const postOtpStart: ControlPlaneHandler = async (request, env) => {
   }
 
   const code = randomOtp6();
+  const delivered = await deliverOtpEmail(env, email, code);
+  if (!delivered) {
+    return json({ error: "email_unavailable" }, 503);
+  }
+
   const hash = await hmacSha256Hex(env.SESSION_SECRET, `otp:${email}:${code}`);
   const exp = Math.floor(Date.now() / 1000) + OTP_TTL_SEC;
   const rec: OtpRecord = { hash, exp, attempts: 0 };
   await env.KV.put(otpKey(email), JSON.stringify(rec), { expirationTtl: OTP_TTL_SEC + 60 });
-
-  if (env.EMAIL) {
-    try {
-      const { html, text } = buildOtpEmailContent({
-        code,
-        expiresMinutes: OTP_TTL_SEC / 60,
-      });
-      await env.EMAIL.send({
-        from: env.OTP_FROM,
-        to: email,
-        subject: env.OTP_SUBJECT,
-        html,
-        text,
-      });
-    } catch (e) {
-      console.error("otp_email_send_failed", e);
-    }
-  } else {
-    console.warn("EMAIL binding missing; OTP not sent (dev?)");
-  }
 
   return json({ ok: true });
 };

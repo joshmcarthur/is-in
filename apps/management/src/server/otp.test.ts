@@ -56,6 +56,38 @@ describe("otp", () => {
     expect(email?.html).toContain("is-in.nz — your place on the NZ internet.");
   });
 
+  it("returns email_unavailable when send fails", async () => {
+    vi.spyOn(crypto, "randomOtp6").mockReturnValue("123456");
+    test.env.EMAIL = {
+      send: async () => {
+        throw new Error("send blocked");
+      },
+    } as SendEmail;
+    const { status, body } = await callControlPlaneJson(["v1", "auth", "otp", "start"], {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: TEST_EMAIL }),
+      env: test.env,
+    });
+    expect(status).toBe(503);
+    expect(body).toEqual({ error: "email_unavailable" });
+    expect(await test.env.KV.get(otpKey(TEST_EMAIL))).toBeNull();
+  });
+
+  it("returns email_unavailable when EMAIL binding is missing", async () => {
+    vi.spyOn(crypto, "randomOtp6").mockReturnValue("123456");
+    delete test.env.EMAIL;
+    const { status, body } = await callControlPlaneJson(["v1", "auth", "otp", "start"], {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: TEST_EMAIL }),
+      env: test.env,
+    });
+    expect(status).toBe(503);
+    expect(body).toEqual({ error: "email_unavailable" });
+    expect(await test.env.KV.get(otpKey(TEST_EMAIL))).toBeNull();
+  });
+
   it("returns 401 for wrong verify code", async () => {
     await seedOtp(test.env, TEST_EMAIL, "123456");
     const { status, body } = await callControlPlaneJson(["v1", "auth", "otp", "verify"], {
