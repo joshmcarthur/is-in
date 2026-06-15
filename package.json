@@ -19,10 +19,10 @@
     "deploy:management:staging": "bash scripts/deploy-management.sh staging"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.16",
-    "@cloudflare/vitest-pool-workers": "^0.16.10",
-    "vite": "^8.0.14",
-    "vitest": "^4.1.0"
+    "@biomejs/biome": "^2.5.0",
+    "@cloudflare/vitest-pool-workers": "^0.16.15",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.9"
   },
   "pnpm": {
     "overrides": {
