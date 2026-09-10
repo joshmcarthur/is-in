@@ -453,11 +453,12 @@ h1.title {
 .feature-card__action:hover {
   text-decoration-thickness: 2px;
 }
-.feature-card__action--disabled {
+.feature-card__note {
+  margin: 0.3rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  letter-spacing: 0.015em;
   color: var(--muted);
-  text-decoration: none;
-  cursor: default;
-  pointer-events: none;
 }
 
 /* Form fields in stacks */
