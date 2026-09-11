@@ -42,11 +42,6 @@
       "postcss": ">=8.5.18",
       "svgo": ">=4.1.0",
       "smol-toml": ">=1.7.1"
-    },
-    "auditConfig": {
-      "ignoreGhsas": [
-        "GHSA-26w7-cxv4-gfx2"
-      ]
     }
   }
 }
