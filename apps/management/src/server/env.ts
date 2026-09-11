@@ -1,6 +1,8 @@
 /** Cloudflare bindings + secrets available on `locals.runtime.env` (Pages Functions). */
+import type { KvStore } from "@is-in/shared";
+
 export interface ManagementEnv {
-  KV: KVNamespace;
+  KV: KvStore;
   AI: Ai;
   EMAIL?: SendEmail;
   SESSION_SECRET: string;

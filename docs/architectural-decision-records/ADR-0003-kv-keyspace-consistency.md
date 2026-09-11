@@ -61,7 +61,7 @@ Adopt **Option 2** with the following key conventions (string prefixes):
 
 | Key | Purpose |
 |-----|---------|
-| `site:{subdomain}` | JSON: owner email, forwarding fields, timestamps |
+| `site:{subdomain}` | JSON `SiteRecord`: owner email, timestamps, `webForwards` map, `emailAliases` map (catch-all key `"*"`) |
 | `user:{canonicalEmail}` | JSON: `{ "sites": string[] }` |
 | `otp:{canonicalEmail}` | JSON: `{ "hash", "exp", "attempts" }` |
 | `session:{id}` | JSON: `{ "email", "exp" }` |

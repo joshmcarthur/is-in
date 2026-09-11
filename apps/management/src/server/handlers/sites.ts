@@ -4,7 +4,6 @@ import {
   countEmailAliases,
   countWebLinks,
   createEmptySiteRecord,
-  ensureForwardingMaps,
   isValidEmailLocalKey,
   isValidSubdomain,
   isValidWebPathKey,
@@ -13,6 +12,7 @@ import {
   MAX_WEB_LINKS,
   normalizeEmailLocal,
   normalizeWebPath,
+  parseSiteRecord,
   type SiteRecord,
   siteKey,
   type UserRecord,
@@ -34,19 +34,14 @@ async function loadOwnedSite(
   if (!isValidSubdomain(subdomain)) {
     return { ok: false, response: json({ error: "invalid_subdomain" }, 400) };
   }
-  const sk = siteKey(subdomain);
-  const raw = await env.KV.get(sk);
+  const store = env.KV;
+  const raw = await store.get(siteKey(subdomain));
   if (!raw) return { ok: false, response: json({ error: "not_found" }, 404) };
-  let site: SiteRecord;
-  try {
-    site = JSON.parse(raw) as SiteRecord;
-  } catch {
-    return { ok: false, response: json({ error: "not_found" }, 404) };
-  }
+  const site = parseSiteRecord(raw);
+  if (!site) return { ok: false, response: json({ error: "not_found" }, 404) };
   if (canonicalEmail(site.ownerEmail) !== s.email) {
     return { ok: false, response: json({ error: "forbidden" }, 403) };
   }
-  ensureForwardingMaps(site);
   return { ok: true, site };
 }
 
@@ -59,11 +54,19 @@ async function persistSite(
   await env.KV.put(siteKey(subdomain), JSON.stringify(site));
 }
 
+function mergeUserSites(existing: UserRecord | null, subdomain: string): UserRecord {
+  const sites = existing?.sites ?? [];
+  if (sites.includes(subdomain)) {
+    return { sites };
+  }
+  return { sites: [...sites, subdomain] };
+}
+
 export const getSitesMe: ControlPlaneHandler = async (request, env) => {
   const s = await readSession(request, env);
   if (!s) return json({ error: "unauthorized" }, 401);
-  const uk = userKey(s.email);
-  const raw = await env.KV.get(uk);
+  const store = env.KV;
+  const raw = await store.get(userKey(s.email));
   let sites: string[] = [];
   if (raw) {
     try {
@@ -72,19 +75,18 @@ export const getSitesMe: ControlPlaneHandler = async (request, env) => {
       sites = [];
     }
   }
-  const details: Array<SiteRecord & { subdomain: string }> = [];
-  for (const sub of sites) {
-    const sr = await env.KV.get(siteKey(sub));
-    if (sr) {
-      try {
-        const parsed = JSON.parse(sr) as SiteRecord;
-        ensureForwardingMaps(parsed);
-        details.push({ ...parsed, subdomain: sub });
-      } catch {
-        /* skip */
-      }
-    }
-  }
+  const loaded = await Promise.all(
+    sites.map(async (sub) => {
+      const sr = await store.get(siteKey(sub));
+      if (!sr) return null;
+      const parsed = parseSiteRecord(sr);
+      if (!parsed) return null;
+      return { ...parsed, subdomain: sub };
+    }),
+  );
+  const details = loaded.filter(
+    (entry): entry is SiteRecord & { subdomain: string } => entry !== null,
+  );
   return json({ sites: details });
 };
 
@@ -103,21 +105,23 @@ export const postSitesClaim: ControlPlaneHandler = async (request, env) => {
     return json({ error: "invalid_or_reserved_subdomain" }, 400);
   }
 
+  const store = env.KV;
   const uk = userKey(s.email);
-  const existingUser = await env.KV.get(uk);
-  if (existingUser) {
+  const existingUserRaw = await store.get(uk);
+  let existingUser: UserRecord | null = null;
+  if (existingUserRaw) {
     try {
-      const u = JSON.parse(existingUser) as UserRecord;
-      if (u.sites?.length >= 1) {
+      existingUser = JSON.parse(existingUserRaw) as UserRecord;
+      if (existingUser.sites?.length >= 1) {
         return json({ error: "already_has_site" }, 409);
       }
     } catch {
-      /* continue */
+      existingUser = null;
     }
   }
 
   const sk = siteKey(subdomain);
-  const race = await env.KV.get(sk);
+  const race = await store.get(sk);
   if (race) {
     return json({ error: "taken" }, 409);
   }
@@ -135,33 +139,13 @@ export const postSitesClaim: ControlPlaneHandler = async (request, env) => {
 
   const now = new Date().toISOString();
   const site = createEmptySiteRecord(s.email, now);
-  await env.KV.put(sk, JSON.stringify(site));
+  await store.put(sk, JSON.stringify(site));
 
-  const userRec: UserRecord = { sites: [subdomain] };
-  await env.KV.put(uk, JSON.stringify(userRec));
+  const userRec = mergeUserSites(existingUser, subdomain);
+  await store.put(uk, JSON.stringify(userRec));
 
   return json({ ok: true, site });
 };
-
-function setCatchAllWebForward(site: SiteRecord, url: string | null): Response | null {
-  const { webForwards } = ensureForwardingMaps(site);
-  if (url === null) {
-    delete webForwards[CATCH_ALL_KEY];
-    return null;
-  }
-  webForwards[CATCH_ALL_KEY] = { url };
-  return null;
-}
-
-function setCatchAllEmailAlias(site: SiteRecord, dest: string | null): Response | null {
-  const { emailAliases } = ensureForwardingMaps(site);
-  if (dest === null) {
-    delete emailAliases[CATCH_ALL_KEY];
-    return null;
-  }
-  emailAliases[CATCH_ALL_KEY] = { destinations: [dest] };
-  return null;
-}
 
 export const patchSiteForwarding: ControlPlaneHandler = async (request, env, segments) => {
   const segment = segments[2];
@@ -180,25 +164,23 @@ export const patchSiteForwarding: ControlPlaneHandler = async (request, env, seg
 
   if ("webForwardUrl" in body) {
     if (body.webForwardUrl === null || body.webForwardUrl === "") {
-      const err = setCatchAllWebForward(site, null);
-      if (err) return err;
+      delete site.webForwards[CATCH_ALL_KEY];
     } else if (typeof body.webForwardUrl === "string" && isSafeForwardUrl(body.webForwardUrl)) {
-      const err = setCatchAllWebForward(site, body.webForwardUrl.trim());
-      if (err) return err;
+      site.webForwards[CATCH_ALL_KEY] = { url: body.webForwardUrl.trim() };
     } else {
       return json({ error: "invalid_web_forward_url" }, 400);
     }
   }
   if ("emailForwardDest" in body) {
     if (body.emailForwardDest === null || body.emailForwardDest === "") {
-      const err = setCatchAllEmailAlias(site, null);
-      if (err) return err;
+      delete site.emailAliases[CATCH_ALL_KEY];
     } else if (
       typeof body.emailForwardDest === "string" &&
       isValidDestinationEmail(body.emailForwardDest)
     ) {
-      const err = setCatchAllEmailAlias(site, canonicalEmail(body.emailForwardDest.trim()));
-      if (err) return err;
+      site.emailAliases[CATCH_ALL_KEY] = {
+        destinations: [canonicalEmail(body.emailForwardDest.trim())],
+      };
     } else {
       return json({ error: "invalid_email_forward_dest" }, 400);
     }
@@ -237,7 +219,7 @@ export const postSiteLink: ControlPlaneHandler = async (request, env, segments) 
   if (!isSafeForwardUrl(url)) {
     return json({ error: "invalid_web_forward_url" }, 400);
   }
-  const { webForwards } = ensureForwardingMaps(site);
+  const { webForwards } = site;
   const isNew = !(pathKey in webForwards);
   if (isNew && countWebLinks(site) >= MAX_WEB_LINKS) {
     return json({ error: "rule_limit_exceeded" }, 400);
@@ -267,7 +249,7 @@ export const deleteSiteLink: ControlPlaneHandler = async (request, env, segments
   if (!pathKey || pathKey === CATCH_ALL_KEY || !isValidWebPathKey(pathKey)) {
     return json({ error: "invalid_path" }, 400);
   }
-  const { webForwards } = ensureForwardingMaps(site);
+  const { webForwards } = site;
   if (!(pathKey in webForwards)) {
     return json({ error: "not_found" }, 404);
   }
@@ -308,7 +290,7 @@ export const postSiteAlias: ControlPlaneHandler = async (request, env, segments)
     destinations.push(canonicalEmail(raw.trim()));
   }
 
-  const { emailAliases } = ensureForwardingMaps(site);
+  const { emailAliases } = site;
   const isNew = !(localKey in emailAliases);
   if (isNew && countEmailAliases(site) >= MAX_EMAIL_ALIASES) {
     return json({ error: "rule_limit_exceeded" }, 400);
@@ -331,7 +313,7 @@ export const deleteSiteAlias: ControlPlaneHandler = async (request, env, segment
   if (!localKey || localKey === CATCH_ALL_KEY || !isValidEmailLocalKey(localKey)) {
     return json({ error: "invalid_local" }, 400);
   }
-  const { emailAliases } = ensureForwardingMaps(site);
+  const { emailAliases } = site;
   if (!(localKey in emailAliases)) {
     return json({ error: "not_found" }, 404);
   }
