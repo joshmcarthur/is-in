@@ -28,8 +28,8 @@ Cons: control plane separated from Astro (what we moved away from).
 ### Option 2: Pages (Astro hybrid) + `public-site` + `email-inbound` (chosen)
 
 1. **`apps/management`** — Astro **hybrid** on Cloudflare Pages: prerendered pages + `/api/*` catch-all that dispatches to control-plane handlers (KV + `send_email` for OTP).
-2. **`workers/public-site`** — Hono (or plain fetch handler) for `https://{site}.is-in.nz` HTTP redirects from KV.
-3. **`workers/email-inbound`** — **Email Worker** entrypoint: reads `emailForwardDest` from KV for `*@{site}.is-in.nz` and `message.forward(...)`. Attach via zone **Email Routing** to the addresses you want handled dynamically.
+2. **`workers/public-site`** — plain `fetch` handler for `https://{site}.is-in.nz` HTTP redirects from KV `webForwards`.
+3. **`workers/email-inbound`** — **Email Worker** entrypoint: reads `emailAliases` from KV for `*@{site}.is-in.nz` and forwards to verified destinations. Attach via zone **Email Routing catch-all** after deploy.
 
 Shared **`packages/shared`** key helpers and types.
 
@@ -49,7 +49,7 @@ Adopt **Option 2**.
 
 - Deploy Pages; confirm `/api/health` returns JSON from production.
 - Deploy `public-site`; confirm apex `home` is not captured by the wildcard worker route.
-- Deploy `email-inbound`; send test mail to `anything@test.is-in.nz` and confirm forward when KV has `emailForwardDest`.
+- Deploy `email-inbound`; send test mail to `anything@test.is-in.nz` and confirm forward when KV has `emailAliases["*"]`.
 
 ## References
 
