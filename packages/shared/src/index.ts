@@ -4,6 +4,7 @@ import { RESERVED_SUBDOMAINS } from "./reserved.js";
 export { canonicalEmail } from "./email.js";
 export type { CloudflareKvBinding, KvPutOptions, KvStore } from "./kv-store.js";
 export { createMemoryKv, wrapCloudflareKv } from "./kv-store.js";
+export { parseSiteFromEmailAddress, parseSiteHost } from "./parse-site-host.js";
 export { parseSiteRecord } from "./parse-site-record.js";
 export { RESERVED_SUBDOMAINS } from "./reserved.js";
 

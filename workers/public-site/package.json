@@ -8,11 +8,11 @@
     "deploy": "wrangler deploy",
     "deploy:staging": "wrangler deploy -e staging",
     "typecheck": "tsc --noEmit",
+    "cf-typegen": "wrangler types --include-runtime false",
     "test": "vitest run"
   },
   "dependencies": {
-    "@is-in/shared": "workspace:*",
-    "hono": "^4.12.25"
+    "@is-in/shared": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260530.1",

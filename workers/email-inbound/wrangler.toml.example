@@ -1,0 +1,15 @@
+name = "is-in-email-inbound"
+main = "src/index.ts"
+compatibility_date = "2026-06-02"
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[[kv_namespaces]]
+binding = "KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+preview_id = "REPLACE_WITH_KV_PREVIEW_ID"
+
+[vars]
+ROOT_DOMAIN = "example.com"
