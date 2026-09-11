@@ -1,5 +1,10 @@
+import { canonicalEmail } from "./email.js";
 import { RESERVED_SUBDOMAINS } from "./reserved.js";
 
+export { canonicalEmail } from "./email.js";
+export type { CloudflareKvBinding, KvPutOptions, KvStore } from "./kv-store.js";
+export { createMemoryKv, wrapCloudflareKv } from "./kv-store.js";
+export { parseSiteRecord } from "./parse-site-record.js";
 export { RESERVED_SUBDOMAINS } from "./reserved.js";
 
 export function siteKey(subdomain: string): string {
@@ -21,16 +26,6 @@ export function sessionKey(sessionId: string): string {
 /** Coarse rate-limit counters (see ADR-0003). `bucket` should be a hashed or opaque id. */
 export function ratelimitKey(scope: string, bucket: string): string {
   return `ratelimit:${scope}:${bucket}`;
-}
-
-/** Lowercase email; minimal normalisation (full IDNA left to clients / later). */
-export function canonicalEmail(email: string): string {
-  const t = email.trim();
-  const at = t.lastIndexOf("@");
-  if (at <= 0) return t.toLowerCase();
-  const local = t.slice(0, at);
-  const domain = t.slice(at + 1);
-  return `${local.toLowerCase()}@${domain.toLowerCase()}`;
 }
 
 const SUBDOMAIN_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
