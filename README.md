@@ -143,7 +143,7 @@ pnpm deploy:management:staging      # staging (test.is-in.nz)
 # or: ./scripts/deploy-management.sh [production|staging]
 ```
 
-Staging uses `ROOT_DOMAIN=test.is-in.nz` so claimed names are `you.test.is-in.nz`. The dashboard is at the apex `test.is-in.nz`. Set `PUBLIC_ROOT_DOMAIN` at build time via the deploy script (do not rely on `wrangler deploy -e staging` alone with Astro 6).
+Staging uses `ROOT_DOMAIN=test.is-in.nz` so claimed names are `you.test.is-in.nz`. The dashboard is at the apex `test.is-in.nz`. Set `PUBLIC_ROOT_DOMAIN` at build time via the deploy script (do not rely on `wrangler deploy -e staging` alone).
 
 Deploy edge workers:
 
