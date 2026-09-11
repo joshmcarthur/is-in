@@ -15,15 +15,37 @@ import {
 import type { ControlPlaneHandler } from "../handlers/types";
 import { json, jsonNotFound } from "../http";
 
-const STATIC_ROUTES = new Map<string, ControlPlaneHandler>([
-  ["POST v1/availability", postAvailability],
-  ["POST v1/auth/otp/start", postOtpStart],
-  ["POST v1/auth/otp/verify", postOtpVerify],
-  ["GET v1/session/me", getSessionMe],
-  ["DELETE v1/session", deleteSession],
-  ["GET v1/sites/me", getSitesMe],
-  ["POST v1/sites/claim", postSitesClaim],
-]);
+type Route = {
+  method: string;
+  pathname: string;
+  handle: ControlPlaneHandler;
+  requireSecret?: boolean;
+};
+
+const routes: Route[] = [
+  { method: "GET", pathname: "/api/health", handle: getHealth, requireSecret: false },
+  { method: "POST", pathname: "/api/v1/availability", handle: postAvailability },
+  { method: "POST", pathname: "/api/v1/auth/otp/start", handle: postOtpStart },
+  { method: "POST", pathname: "/api/v1/auth/otp/verify", handle: postOtpVerify },
+  { method: "GET", pathname: "/api/v1/session/me", handle: getSessionMe },
+  { method: "DELETE", pathname: "/api/v1/session", handle: deleteSession },
+  { method: "GET", pathname: "/api/v1/sites/me", handle: getSitesMe },
+  { method: "POST", pathname: "/api/v1/sites/claim", handle: postSitesClaim },
+  { method: "PATCH", pathname: "/api/v1/sites/:subdomain/forwarding", handle: patchSiteForwarding },
+  { method: "POST", pathname: "/api/v1/sites/:subdomain/links", handle: postSiteLink },
+  { method: "DELETE", pathname: "/api/v1/sites/:subdomain/links/:path+", handle: deleteSiteLink },
+  { method: "POST", pathname: "/api/v1/sites/:subdomain/aliases", handle: postSiteAlias },
+  {
+    method: "DELETE",
+    pathname: "/api/v1/sites/:subdomain/aliases/:local",
+    handle: deleteSiteAlias,
+  },
+];
+
+const compiled = routes.map((route) => ({
+  ...route,
+  pattern: new URLPattern({ pathname: route.pathname }),
+}));
 
 function apiSegments(request: Request): string[] {
   return new URL(request.url).pathname
@@ -32,50 +54,15 @@ function apiSegments(request: Request): string[] {
     .filter(Boolean);
 }
 
-function matchSitesResource(
-  segments: string[],
-  resource: string,
-  length: number,
-  rest = false,
-): boolean {
-  const lengthOk = rest ? segments.length >= length : segments.length === length;
-  return lengthOk && segments[0] === "v1" && segments[1] === "sites" && segments[3] === resource;
-}
-
-/** Dispatch `/api/*` (path after `/api/`) to a control-plane handler. */
+/** Dispatch `/api/*` to a control-plane handler. */
 export async function routeApi(request: Request, env: ManagementEnv): Promise<Response> {
-  const segments = apiSegments(request);
-  const method = request.method;
-  const key = `${method} ${segments.join("/")}`;
-
-  if (key === "GET health") {
-    return getHealth(request, env, segments);
+  for (const route of compiled) {
+    if (request.method !== route.method) continue;
+    if (!route.pattern.exec(request.url)) continue;
+    if (route.requireSecret !== false && !env.SESSION_SECRET) {
+      return json({ error: "server_misconfigured" }, 500);
+    }
+    return route.handle(request, env, apiSegments(request));
   }
-
-  if (!env.SESSION_SECRET) {
-    return json({ error: "server_misconfigured" }, 500);
-  }
-
-  const staticHandler = STATIC_ROUTES.get(key);
-  if (staticHandler) {
-    return staticHandler(request, env, segments);
-  }
-
-  if (method === "PATCH" && matchSitesResource(segments, "forwarding", 4)) {
-    return patchSiteForwarding(request, env, segments);
-  }
-  if (method === "POST" && matchSitesResource(segments, "links", 4)) {
-    return postSiteLink(request, env, segments);
-  }
-  if (method === "DELETE" && matchSitesResource(segments, "links", 5, true)) {
-    return deleteSiteLink(request, env, segments);
-  }
-  if (method === "POST" && matchSitesResource(segments, "aliases", 4)) {
-    return postSiteAlias(request, env, segments);
-  }
-  if (method === "DELETE" && matchSitesResource(segments, "aliases", 5)) {
-    return deleteSiteAlias(request, env, segments);
-  }
-
   return jsonNotFound();
 }

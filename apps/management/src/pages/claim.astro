@@ -3,8 +3,6 @@ export const prerender = true;
 
 import Layout from "../layouts/Layout.astro";
 import { ROOT_DOMAIN } from "../siteDomain";
-
-const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
 ---
 <Layout title="Claim your name">
   <a class="back-link" href="/">‹ Back</a>
@@ -30,28 +28,32 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
     </form>
     <p id="msg" class="status" role="alert" hidden></p>
   </div>
-  <script is:inline define:vars={{ apiBase, ROOT_DOMAIN }}>
+  <script>
+    import { apiBase } from "../client/apiBase";
+    import { readJson, requiredElement } from "../client/dom";
+    import { ROOT_DOMAIN } from "../siteDomain";
+
     const PENDING_SUB_KEY = "isin_pending_subdomain";
 
     async function me() {
-      const res = await fetch(apiBase + "/api/v1/session/me", { credentials: "include" });
+      const res = await fetch(`${apiBase}/api/v1/session/me`, { credentials: "include" });
       if (!res.ok) return null;
-      return res.json();
+      return readJson<{ authenticated?: boolean }>(res);
     }
 
     async function hasSite() {
-      const res = await fetch(apiBase + "/api/v1/sites/me", { credentials: "include" });
+      const res = await fetch(`${apiBase}/api/v1/sites/me`, { credentials: "include" });
       if (!res.ok) return false;
-      const body = await res.json();
+      const body = await readJson<{ sites?: unknown[] }>(res);
       return Array.isArray(body.sites) && body.sites.length > 0;
     }
 
-    const subdomainInput = /** @type {HTMLInputElement} */ (document.getElementById("subdomain"));
-    const avail = /** @type {HTMLElement} */ (document.getElementById("avail"));
-    const continueBtn = /** @type {HTMLButtonElement} */ (document.getElementById("continue"));
-    const form = /** @type {HTMLFormElement} */ (document.getElementById("form"));
-    const msg = /** @type {HTMLElement} */ (document.getElementById("msg"));
-    const guestHint = /** @type {HTMLElement} */ (document.getElementById("guest-hint"));
+    const subdomainInput = requiredElement<HTMLInputElement>("subdomain");
+    const avail = requiredElement("avail");
+    const continueBtn = requiredElement<HTMLButtonElement>("continue");
+    const form = requiredElement<HTMLFormElement>("form");
+    const msg = requiredElement("msg");
+    const guestHint = requiredElement("guest-hint");
 
     let checkTimer = 0;
     let checkSeq = 0;
@@ -73,12 +75,7 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
         return;
       }
       guestHint.hidden = false;
-      guestHint.textContent =
-        "We\u2019ll email you a code, then bring you back to reserve " +
-        lastAvailableSubdomain +
-        "." +
-        ROOT_DOMAIN +
-        ".";
+      guestHint.textContent = `We'll email you a code, then bring you back to reserve ${lastAvailableSubdomain}.${ROOT_DOMAIN}.`;
     }
 
     function clearAvail() {
@@ -90,8 +87,8 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
       updateGuestHint();
     }
 
-    function setAvailSuccess(subdomain) {
-      avail.textContent = "\u2713 " + subdomain + "." + ROOT_DOMAIN + " is available!";
+    function setAvailSuccess(subdomain: string) {
+      avail.textContent = `✓ ${subdomain}.${ROOT_DOMAIN} is available!`;
       avail.className = "status status--success";
       continueBtn.disabled = false;
       lastAvailableSubdomain = subdomain;
@@ -99,7 +96,7 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
       updateGuestHint();
     }
 
-    function setAvailError(text) {
+    function setAvailError(text: string) {
       avail.textContent = text;
       avail.className = "status status--error";
       continueBtn.disabled = true;
@@ -108,7 +105,7 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
       updateGuestHint();
     }
 
-    function scheduleAvailabilityCheck(subdomain) {
+    function scheduleAvailabilityCheck(subdomain: string) {
       clearTimeout(checkTimer);
       if (!subdomain) {
         clearAvail();
@@ -120,13 +117,17 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
       updateGuestHint();
       const seq = ++checkSeq;
       checkTimer = window.setTimeout(async () => {
-        const res = await fetch(apiBase + "/api/v1/availability", {
+        const res = await fetch(`${apiBase}/api/v1/availability`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ subdomain }),
         });
         if (seq !== checkSeq) return;
-        const data = await res.json();
+        const data = await readJson<{
+          available?: boolean;
+          reason?: string;
+          subdomain?: string;
+        }>(res);
         const name = typeof data.subdomain === "string" ? data.subdomain : subdomain;
         if (data.available) {
           setAvailSuccess(name);
@@ -136,7 +137,7 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
           setAvailError("Use letters, numbers, and hyphens.");
           return;
         }
-        setAvailError(name + "." + ROOT_DOMAIN + " is not available.");
+        setAvailError(`${name}.${ROOT_DOMAIN} is not available.`);
       }, 300);
     }
 
@@ -182,16 +183,16 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
       }
 
       continueBtn.disabled = true;
-      continueBtn.textContent = "Reserving\u2026";
+      continueBtn.textContent = "Reserving…";
       msg.hidden = true;
 
-      const res = await fetch(apiBase + "/api/v1/sites/claim", {
+      const res = await fetch(`${apiBase}/api/v1/sites/claim`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ subdomain }),
       });
-      const data = await res.json().catch(() => ({}));
+      const data = await readJson<{ error?: string }>(res).catch(() => ({}) as { error?: string });
       if (!res.ok) {
         if (data.error === "already_has_site") {
           window.location.href = "/dashboard";

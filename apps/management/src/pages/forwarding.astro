@@ -2,9 +2,6 @@
 export const prerender = true;
 
 import Layout from "../layouts/Layout.astro";
-import { ROOT_DOMAIN } from "../siteDomain";
-
-const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
 ---
 <Layout title="Web forwarding">
   <a class="back-link" href="/dashboard">‹ Dashboard</a>
@@ -20,18 +17,21 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
     </form>
     <p id="msg" class="status" role="status" aria-live="polite"></p>
   </div>
-  <script src="/control-plane-client.js"></script>
-  <script is:inline define:vars={{ apiBase, ROOT_DOMAIN }}>
-    const form = /** @type {HTMLFormElement} */ (document.getElementById("form"));
-    const msg = /** @type {HTMLElement} */ (document.getElementById("msg"));
-    const hostpreview = /** @type {HTMLElement} */ (document.getElementById("hostpreview"));
-    const web = /** @type {HTMLInputElement} */ (document.getElementById("web"));
+  <script>
+    import { apiBase } from "../client/apiBase";
+    import { readJson, requiredElement } from "../client/dom";
+    import { requireSessionAndSite } from "../client/requireSessionAndSite";
+    import { ROOT_DOMAIN } from "../siteDomain";
+
+    const form = requiredElement<HTMLFormElement>("form");
+    const msg = requiredElement("msg");
+    const hostpreview = requiredElement("hostpreview");
+    const web = requiredElement<HTMLInputElement>("web");
 
     async function load() {
       try {
-        const { site } = await requireSessionAndSite(apiBase);
-        const sub = site.subdomain;
-        hostpreview.textContent = sub + "." + ROOT_DOMAIN;
+        const { site } = await requireSessionAndSite();
+        hostpreview.textContent = `${site.subdomain}.${ROOT_DOMAIN}`;
         web.value = site.webForwards?.["*"]?.url || "";
       } catch {
         return;
@@ -44,8 +44,8 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
       e.preventDefault();
       msg.textContent = "Saving…";
       msg.className = "status";
-      const sitesRes = await fetch(apiBase + "/api/v1/sites/me", { credentials: "include" });
-      const body = await sitesRes.json();
+      const sitesRes = await fetch(`${apiBase}/api/v1/sites/me`, { credentials: "include" });
+      const body = await readJson<{ sites?: Array<{ subdomain: string }> }>(sitesRes);
       if (!sitesRes.ok || !body.sites?.length) {
         msg.textContent = "No site on your account.";
         msg.className = "status status--error";
@@ -53,7 +53,7 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
       }
       const sub = body.sites[0].subdomain;
       const webVal = web.value.trim();
-      const res = await fetch(apiBase + "/api/v1/sites/" + encodeURIComponent(sub) + "/forwarding", {
+      const res = await fetch(`${apiBase}/api/v1/sites/${encodeURIComponent(sub)}/forwarding`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -61,7 +61,7 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
           webForwardUrl: webVal || null,
         }),
       });
-      const out = await res.json().catch(() => ({}));
+      const out = await readJson<{ error?: string }>(res).catch(() => ({}) as { error?: string });
       if (!res.ok) {
         msg.textContent = out.error || "Save failed.";
         msg.className = "status status--error";

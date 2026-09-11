@@ -2,9 +2,6 @@
 export const prerender = true;
 
 import Layout from "../layouts/Layout.astro";
-import { ROOT_DOMAIN } from "../siteDomain";
-
-const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
 ---
 <Layout title="Sign in">
   <a class="back-link" href="/">‹ Back</a>
@@ -27,26 +24,32 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
     <p id="msg" class="status" role="alert" hidden></p>
     <p>Don't have an account? <a href="/claim">Claim a name</a></p>
   </div>
-  <script is:inline define:vars={{ apiBase, ROOT_DOMAIN }}>
+  <script>
+    import { apiBase } from "../client/apiBase";
+    import { requiredElement } from "../client/dom";
+    import { ROOT_DOMAIN } from "../siteDomain";
+
     const pendingSub = sessionStorage.getItem("isin_pending_subdomain");
     if (pendingSub) {
-      const lede = /** @type {HTMLElement} */ (document.getElementById("lede"));
-      lede.textContent =
-        "Sign in to reserve " + pendingSub + "." + ROOT_DOMAIN + ". We\u2019ll email you a code.";
+      const lede = document.getElementById("lede");
+      if (lede) {
+        lede.textContent = `Sign in to reserve ${pendingSub}.${ROOT_DOMAIN}. We'll email you a code.`;
+      }
     }
 
-    const form = /** @type {HTMLFormElement} */ (document.getElementById("form"));
-    const msg = /** @type {HTMLElement} */ (document.getElementById("msg"));
-    const submitBtn = /** @type {HTMLButtonElement} */ (document.getElementById("submit"));
+    const form = requiredElement<HTMLFormElement>("form");
+    const msg = requiredElement("msg");
+    const submitBtn = requiredElement<HTMLButtonElement>("submit");
+    const emailInput = requiredElement<HTMLInputElement>("email");
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       msg.hidden = true;
       submitBtn.disabled = true;
-      submitBtn.textContent = "Sending\u2026";
+      submitBtn.textContent = "Sending…";
 
-      const email = /** @type {HTMLInputElement} */ (document.getElementById("email")).value.trim();
-      const res = await fetch(apiBase + "/api/v1/auth/otp/start", {
+      const email = emailInput.value.trim();
+      const res = await fetch(`${apiBase}/api/v1/auth/otp/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
