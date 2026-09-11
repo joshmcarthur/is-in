@@ -10,7 +10,7 @@ pnpm verify && pnpm audit --audit-level=high
 
 `pnpm verify` runs Biome (`lint`), TypeScript checks across workspaces (`typecheck`), and Vitest (`test`). GitHub Actions CI runs those same checks **plus** the audit; local `pnpm verify` does not include it.
 
-Workspaces pin TypeScript to `~6.0.3` (`pnpm.overrides` keep it `>=6.0.3 <7`) because TypeScript 7 is the native compiler and does not export the Language Service API that `astro check` needs. Dependabot ignores TypeScript majors and excludes `typescript` from the grouped `dev-dependencies` update.
+Workspaces pin TypeScript to `~6.0.3` (`pnpm.overrides` keep it `>=6.0.3 <7`) because TypeScript 7 is the native compiler and does not export the Language Service API that `astro check` needs. Dependabot ignores TypeScript majors and excludes `typescript` from the grouped `dev-dependencies` update. CI and local tooling use Node 24 so `URLPattern` is available to management tests (Workers already have it).
 
 `pnpm.overrides` also force patched transitives, including `sharp >=0.35.4`. [GHSA-26w7-cxv4-gfx2](https://github.com/advisories/GHSA-26w7-cxv4-gfx2) is keyed to `astro < 7.2.8` but the actual bug is Sharp/`libheif`; there is no Astro 6 backport, so that advisory is listed in `pnpm.auditConfig.ignoreGhsas` until we take Astro 7.
 
