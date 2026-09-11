@@ -2,8 +2,6 @@
 export const prerender = true;
 
 import Layout from "../layouts/Layout.astro";
-
-const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
 ---
 <Layout title="Enter code">
   <a class="back-link" href="/sign-in">‹ Back</a>
@@ -33,26 +31,29 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
     <p id="msg" class="status" role="alert" hidden></p>
     <p>Wrong email? <a href="/sign-in">Start over</a></p>
   </div>
-  <script is:inline define:vars={{ apiBase }}>
+  <script>
+    import { apiBase } from "../client/apiBase";
+    import { readJson, requiredElement } from "../client/dom";
+
     const email = sessionStorage.getItem("isin_pending_email");
     if (!email) {
       window.location.href = "/sign-in";
     }
 
-    const heading = /** @type {HTMLElement} */ (document.getElementById("heading"));
-    const lede = /** @type {HTMLElement} */ (document.getElementById("lede"));
-    const form = /** @type {HTMLFormElement} */ (document.getElementById("form"));
-    const msg = /** @type {HTMLElement} */ (document.getElementById("msg"));
-    const submitBtn = /** @type {HTMLButtonElement} */ (document.getElementById("submit"));
-    const resendWrap = /** @type {HTMLElement} */ (document.getElementById("resend-wrap"));
-    const resendBtn = /** @type {HTMLButtonElement} */ (document.getElementById("resend"));
-    const codeInput = /** @type {HTMLInputElement} */ (document.getElementById("code"));
+    const heading = requiredElement("heading");
+    const lede = requiredElement("lede");
+    const form = requiredElement<HTMLFormElement>("form");
+    const msg = requiredElement("msg");
+    const submitBtn = requiredElement<HTMLButtonElement>("submit");
+    const resendWrap = requiredElement("resend-wrap");
+    const resendBtn = requiredElement<HTMLButtonElement>("resend");
+    const codeInput = requiredElement<HTMLInputElement>("code");
 
-    function digitsOnly(value, maxLen = 6) {
+    function digitsOnly(value: string, maxLen = 6) {
       return value.replace(/\D/g, "").slice(0, maxLen);
     }
 
-    function applyCodeInput(value) {
+    function applyCodeInput(value: string) {
       const next = digitsOnly(value);
       if (codeInput.value !== next) codeInput.value = next;
     }
@@ -79,7 +80,7 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
     resendBtn.addEventListener("click", async () => {
       msg.hidden = true;
       resendBtn.disabled = true;
-      const res = await fetch(apiBase + "/api/v1/auth/otp/start", {
+      const res = await fetch(`${apiBase}/api/v1/auth/otp/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -95,7 +96,7 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
       codeInput.value = "";
       codeInput.focus();
       msg.hidden = false;
-      msg.textContent = "New code sent \u2014 check your email.";
+      msg.textContent = "New code sent — check your email.";
       msg.className = "status status--success";
     });
 
@@ -112,9 +113,9 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
       }
 
       submitBtn.disabled = true;
-      submitBtn.textContent = invalid ? "Trying again\u2026" : "Verifying\u2026";
+      submitBtn.textContent = invalid ? "Trying again…" : "Verifying…";
 
-      const res = await fetch(apiBase + "/api/v1/auth/otp/verify", {
+      const res = await fetch(`${apiBase}/api/v1/auth/otp/verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -125,8 +126,8 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
         let isInvalidCode = res.status === 401;
         if (isInvalidCode) {
           try {
-            const body = await res.json();
-            isInvalidCode = body?.error === "invalid_code";
+            const body = await readJson<{ error?: string }>(res);
+            isInvalidCode = body.error === "invalid_code";
           } catch {
             /* treat 401 as invalid code */
           }
@@ -153,10 +154,9 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
         return;
       }
 
-      const sitesRes = await fetch(apiBase + "/api/v1/sites/me", { credentials: "include" });
-      const sitesBody = await sitesRes.json();
-      const hasSite =
-        sitesRes.ok && Array.isArray(sitesBody.sites) && sitesBody.sites.length > 0;
+      const sitesRes = await fetch(`${apiBase}/api/v1/sites/me`, { credentials: "include" });
+      const sitesBody = await readJson<{ sites?: unknown[] }>(sitesRes);
+      const hasSite = sitesRes.ok && Array.isArray(sitesBody.sites) && sitesBody.sites.length > 0;
       window.location.href = hasSite ? "/dashboard" : "/claim";
     });
 

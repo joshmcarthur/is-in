@@ -1,4 +1,4 @@
-import { routeControlPlane } from "../controlPlane";
+import { routeApi } from "../api/app";
 import type { ManagementEnv } from "../env";
 
 const TEST_HOST = "localhost:8788";
@@ -12,7 +12,7 @@ export type CallControlPlaneInit = Omit<RequestInit, "headers"> & {
 export async function callControlPlane(
   segments: string[],
   init: CallControlPlaneInit,
-): Promise<Response | null> {
+): Promise<Response> {
   const path = segments.length > 0 ? `/api/${segments.join("/")}` : "/api";
   const url = `http://${TEST_HOST}${path}`;
   const headers = new Headers(init.headers);
@@ -20,17 +20,14 @@ export async function callControlPlane(
     headers.set("host", TEST_HOST);
   }
   const request = new Request(url, { ...init, headers });
-  return routeControlPlane(request, init.env, segments);
+  return routeApi(request, init.env);
 }
 
 export async function callControlPlaneJson<T = unknown>(
   segments: string[],
   init: CallControlPlaneInit,
-): Promise<{ res: Response | null; status: number; body: T | null }> {
+): Promise<{ res: Response; status: number; body: T }> {
   const res = await callControlPlane(segments, init);
-  if (!res) {
-    return { res: null, status: 404, body: null };
-  }
   const body = (await res.json()) as T;
   return { res, status: res.status, body };
 }

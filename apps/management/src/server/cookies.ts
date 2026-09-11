@@ -33,7 +33,7 @@ export function appendSessionCookie(
     `${SESSION_COOKIE}=${encodeURIComponent(sid)}`,
     "Path=/",
     "HttpOnly",
-    localDev ? "SameSite=Lax" : "SameSite=None",
+    "SameSite=Lax",
     localDev ? "" : "Secure",
     `Max-Age=${maxAge}`,
   ].filter(Boolean);
@@ -46,7 +46,7 @@ export function appendClearSessionCookie(headers: Headers, host: string): void {
     `${SESSION_COOKIE}=`,
     "Path=/",
     "HttpOnly",
-    localDev ? "SameSite=Lax" : "SameSite=None",
+    "SameSite=Lax",
     localDev ? "" : "Secure",
     "Max-Age=0",
   ].filter(Boolean);

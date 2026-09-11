@@ -6,11 +6,11 @@ import { createTestEnv } from "./testing/testEnv.js";
 describe("controlPlane", () => {
   const test = useControlPlaneTest();
 
-  it("returns 500 when SESSION_SECRET is missing", async () => {
+  it("returns 500 when SESSION_SECRET is missing on protected routes", async () => {
     const { env: noSecret } = createTestEnv({
       overrides: { SESSION_SECRET: "" },
     });
-    const { status, body } = await callControlPlaneJson(["health"], {
+    const { status, body } = await callControlPlaneJson(["v1", "session", "me"], {
       method: "GET",
       env: noSecret,
     });
@@ -18,12 +18,24 @@ describe("controlPlane", () => {
     expect(body).toEqual({ error: "server_misconfigured" });
   });
 
-  it("returns null for unknown routes", async () => {
+  it("GET health succeeds without SESSION_SECRET", async () => {
+    const { env: noSecret } = createTestEnv({
+      overrides: { SESSION_SECRET: "" },
+    });
+    const { status, body } = await callControlPlaneJson(["health"], {
+      method: "GET",
+      env: noSecret,
+    });
+    expect(status).toBe(200);
+    expect(body).toEqual({ ok: true });
+  });
+
+  it("returns 404 for unknown routes", async () => {
     const res = await callControlPlane(["v1", "nope"], {
       method: "GET",
       env: test.env,
     });
-    expect(res).toBeNull();
+    expect(res.status).toBe(404);
   });
 
   it("GET health returns ok", async () => {

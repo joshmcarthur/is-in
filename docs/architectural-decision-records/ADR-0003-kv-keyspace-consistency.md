@@ -102,4 +102,4 @@ Adopt **Option 2** with the following key conventions (string prefixes):
 ## References
 
 - `packages/shared` key helpers and types
-- `apps/management` API routes and `src/server/controlPlane.ts`
+- `apps/management` API routes and `src/server/api/app.ts`
