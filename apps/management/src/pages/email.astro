@@ -20,6 +20,7 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
     </form>
     <p id="msg" class="status" role="status" aria-live="polite"></p>
   </div>
+  <script src="/control-plane-client.js"></script>
   <script is:inline define:vars={{ apiBase, ROOT_DOMAIN }}>
     const form = /** @type {HTMLFormElement} */ (document.getElementById("form"));
     const msg = /** @type {HTMLElement} */ (document.getElementById("msg"));
@@ -27,22 +28,14 @@ const apiBase = import.meta.env.PUBLIC_API_BASE ?? "";
     const mail = /** @type {HTMLInputElement} */ (document.getElementById("mail"));
 
     async function load() {
-      const meRes = await fetch(apiBase + "/api/v1/session/me", { credentials: "include" });
-      const me = await meRes.json();
-      if (!meRes.ok || !me.authenticated) {
-        window.location.href = "/sign-in";
+      try {
+        const { site } = await requireSessionAndSite(apiBase);
+        const sub = site.subdomain;
+        hostpreview.textContent = "*" + "@" + sub + "." + ROOT_DOMAIN;
+        mail.value = site.emailAliases?.["*"]?.destinations?.[0] || "";
+      } catch {
         return;
       }
-      const sitesRes = await fetch(apiBase + "/api/v1/sites/me", { credentials: "include" });
-      const body = await sitesRes.json();
-      if (!sitesRes.ok || !body.sites || !body.sites.length) {
-        window.location.href = "/claim";
-        return;
-      }
-      const site = body.sites[0];
-      const sub = site.subdomain;
-      hostpreview.textContent = "*" + "@" + sub + "." + ROOT_DOMAIN;
-      mail.value = site.emailAliases?.["*"]?.destinations?.[0] || "";
     }
 
     load();

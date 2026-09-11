@@ -27,7 +27,7 @@ Cons: control plane separated from Astro (what we moved away from).
 
 ### Option 2: Pages (Astro hybrid) + `public-site` + `email-inbound` (chosen)
 
-1. **`apps/management`** — Astro **hybrid** on Cloudflare Pages: prerendered pages + `/api/*` Pages Functions implementing the former control API (KV + `send_email` for OTP).
+1. **`apps/management`** — Astro **hybrid** on Cloudflare Pages: prerendered pages + `/api/*` catch-all that dispatches to control-plane handlers (KV + `send_email` for OTP).
 2. **`workers/public-site`** — Hono (or plain fetch handler) for `https://{site}.is-in.nz` HTTP redirects from KV.
 3. **`workers/email-inbound`** — **Email Worker** entrypoint: reads `emailForwardDest` from KV for `*@{site}.is-in.nz` and `message.forward(...)`. Attach via zone **Email Routing** to the addresses you want handled dynamically.
 

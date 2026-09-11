@@ -51,7 +51,7 @@ Adopt **Option 2**. Session remains an opaque id in cookie `isin_session`, backe
 
 ## Implementation Notes
 
-- Code: `apps/management/src/server/controlPlane.ts`, `apps/management/src/pages/api/[...segments].ts`
+- Code: `apps/management/src/server/api/app.ts`, `apps/management/src/pages/api/[...segments].ts`
 - Secrets: `SESSION_SECRET` via `wrangler secret put` on the Pages project (or `apps/management/.dev.vars` locally)
 
 ## Validation

@@ -28,14 +28,14 @@ const contactUrl = "https://github.com/joshmcarthur/is-in/issues";
         <div class="feature-card__body">
           <h2 class="feature-card__title">Your page</h2>
           <p class="feature-card__desc muted">View your public page</p>
-          <p class="feature-card__note">Editing under construction</p>
+          <p class="feature-card__note">Coming later</p>
         </div>
         <div class="feature-card__actions">
           <a class="feature-card__action" id="view-page" href="#">View</a>
         </div>
       </article>
 
-      <article class="feature-card" id="mail">
+      <article class="feature-card feature-card--muted" id="mail">
         <span class="feature-card__icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
             <path d="M4 6h16v12H4z"></path>
@@ -45,11 +45,11 @@ const contactUrl = "https://github.com/joshmcarthur/is-in/issues";
         <div class="feature-card__body">
           <h2 class="feature-card__title">Email aliases</h2>
           <p class="feature-card__desc muted" id="aliases-desc">Create @yourname.is-in.nz addresses</p>
-          <p class="feature-card__note">Under construction</p>
+          <p class="feature-card__note">Coming later</p>
         </div>
       </article>
 
-      <article class="feature-card" id="links">
+      <article class="feature-card feature-card--muted" id="links">
         <span class="feature-card__icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
             <path d="M10 13a5 5 0 0 1 7.07 0l1.41 1.41a5 5 0 0 1 0 7.07 5 5 0 0 1-7.07 0"></path>
@@ -59,7 +59,7 @@ const contactUrl = "https://github.com/joshmcarthur/is-in/issues";
         <div class="feature-card__body">
           <h2 class="feature-card__title">Short URLs</h2>
           <p class="feature-card__desc muted">Create short, easy to share links</p>
-          <p class="feature-card__note">Under construction</p>
+          <p class="feature-card__note">Coming later</p>
         </div>
       </article>
 
@@ -108,6 +108,7 @@ const contactUrl = "https://github.com/joshmcarthur/is-in/issues";
     </footer>
   </div>
 
+  <script src="/control-plane-client.js"></script>
   <script is:inline define:vars={{ apiBase, ROOT_DOMAIN }}>
     const siteHost = /** @type {HTMLElement} */ (document.getElementById("site-host"));
     const aliasesDesc = /** @type {HTMLElement} */ (document.getElementById("aliases-desc"));
@@ -117,25 +118,16 @@ const contactUrl = "https://github.com/joshmcarthur/is-in/issues";
     );
 
     async function load() {
-      const meRes = await fetch(apiBase + "/api/v1/session/me", { credentials: "include" });
-      const me = await meRes.json();
-      if (!meRes.ok || !me.authenticated) {
-        window.location.href = "/sign-in";
+      try {
+        const { site } = await requireSessionAndSite(apiBase);
+        const sub = site.subdomain;
+        const host = sub + "." + ROOT_DOMAIN;
+        siteHost.textContent = host;
+        aliasesDesc.textContent = "Create @" + host + " addresses";
+        viewPage.href = "https://" + host;
+      } catch {
         return;
       }
-
-      const sitesRes = await fetch(apiBase + "/api/v1/sites/me", { credentials: "include" });
-      const body = await sitesRes.json();
-      if (!sitesRes.ok || !body.sites || !body.sites.length) {
-        window.location.href = "/claim";
-        return;
-      }
-
-      const sub = body.sites[0].subdomain;
-      const host = sub + "." + ROOT_DOMAIN;
-      siteHost.textContent = host;
-      aliasesDesc.textContent = "Create @" + host + " addresses";
-      viewPage.href = "https://" + host;
     }
 
     async function signOut() {
