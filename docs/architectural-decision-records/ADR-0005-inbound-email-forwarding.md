@@ -1,6 +1,6 @@
 # ADR-0005: Inbound email forwarding strategy (MVP)
 
-- Status: Accepted
+- Status: Accepted (revised 2026-09-11)
 - Date: 2026-05-14
 - Deciders: Project maintainers
 - Technical Story: Email forwarding after sign-up
@@ -9,31 +9,32 @@
 
 ## Context
 
-Users configure a **forwarding destination** for mail to `*@{site}.is-in.nz`. Cloudflare **Email Routing** can deliver mail based on zone-level rules. Workers can participate via **Email Workers**. MVP must persist intent in **KV** and define how that becomes real mail flow.
+Users configure forwarding for mail to `*@{site}.is-in.nz`. Cloudflare **Email Routing** delivers inbound mail to **Email Workers**. MVP must persist intent in **KV** and define how that becomes real mail flow.
 
 ## Decision Drivers
 
 - Time to first working forward
-- Automation vs manual DNS/operator steps
+- Self-serve vs operator steps
 - Free-tier limits and API complexity
 
 ## Options Considered
 
-### Option 1: KV as source of truth + Email Worker per message
+### Option 1: KV as source of truth + Email Worker per message (shipped)
 
-Email Worker reads `site` from KV and forwards programmatically.
+Email Worker reads `site:{sub}` from KV, resolves `emailAliases` (exact local, then catch-all `"*"`), and forwards to all configured destinations.
 
 Pros:
 
 - Maximum flexibility per subdomain
+- One zone **catch-all** Email Routing rule covers every claimed name
 
 Cons:
 
-- More code and testing around MIME and deliverability
+- Forward targets must be **verified destinations** in the operator's Cloudflare account
 
 ### Option 2: Email Routing rules via Cloudflare API / dashboard
 
-Create catch-all or custom address rules pointing to verified destinations.
+Create catch-all or custom address rules pointing to verified destinations per user.
 
 Pros:
 
@@ -41,35 +42,32 @@ Pros:
 
 Cons:
 
-- API permissions and per-rule limits; coupling to account automation
+- API permissions and per-rule limits; poor fit for multi-tenant self-serve
 
-### Option 3: MVP persistence + operator-runbook (chosen baseline)
+### Option 3: MVP persistence + operator-runbook only
 
-Persist `emailForwardDest` on `site:{subdomain}` via control API. **Automated creation of Email Routing rules is not required for the first merge** if undocumented API surface blocks progress; instead document the **exact** dashboard/API steps and verify one subdomain manually in staging.
-
-Pros:
-
-- Ships data model and UI quickly; defers risky automation
+Persist destination in KV but require manual per-subdomain routing.
 
 Cons:
 
-- Not fully self-serve for email until follow-up
+- Does not scale; superseded by Option 1 for runtime delivery
 
 ## Decision
 
-Adopt **Option 3** with storage and validation in the control API now; treat **Option 1** as the likely next increment for true self-serve, followed by **Option 2** if rule automation is preferred. This ADR should be updated when automation lands.
+Adopt **Option 1** for runtime delivery. The control API stores catch-all and per-alias rules in `emailAliases` on `site:{subdomain}`. Operators wire **one catch-all** Email Routing rule → `email-inbound`. Remaining operator work is **destination verification**, not per-subdomain routing tables.
 
 ## Implementation Notes
 
-- Validate destination as a normalised RFC-like email string; block obviously invalid hosts.
-- UI copy: “Forwarding destination saved — complete Email Routing for your subdomain if not already automated.”
+- Validate destinations as normalised email strings at write time.
+- Dashboard PATCH `/forwarding` maps to `emailAliases["*"]` for MVP convenience.
+- Inbound worker logs structured drop reasons (`no_site`, `no_alias`, `invalid_recipient`).
 
 ## Validation
 
-- KV contains destination after PATCH
-- Staging checklist documents a successful forward test path
+- KV contains alias map after PATCH
+- Staging: catch-all rule → worker; mail to `x@you.test.is-in.nz` forwards when alias and verified destination exist
 
 ## References
 
 - https://developers.cloudflare.com/email-routing/
-- `apps/management` PATCH `/api/v1/sites/.../forwarding`; runtime delivery via **`workers/email-inbound`** (Email Worker) plus zone Email Routing
+- `workers/email-inbound`; management PATCH `/api/v1/sites/.../forwarding`

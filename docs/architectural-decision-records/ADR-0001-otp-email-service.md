@@ -96,4 +96,4 @@ Adopt **Option 2** as the primary path for OTP email, with **Option 3** document
 ## References
 
 - https://developers.cloudflare.com/email-service/api/send-emails/workers-api/
-- `apps/management` Pages Functions (`src/server/controlPlane.ts`)
+- `apps/management` Pages Functions (`src/server/api/app.ts`)

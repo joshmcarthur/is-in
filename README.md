@@ -1,5 +1,7 @@
 # is-in.nz
 
+Licensed under [GPL-3.0](LICENSE).
+
 A single hostname that stays yours: a profile strangers can open, short links you can change when the destination moves, and addresses at `something@username.is-in.nz` that land in inboxes you already use. That bundle is the whole product idea — no generic website hosting, no social feed, just a small set of behaviours you configure once and keep.
 
 We keep the HTML and routing boring on purpose so the interesting part is what you bring: typography and layout through CSS, where your short links point, and who receives mail for your subdomain. Delivery stays edge-close ([Cloudflare Workers](https://developers.cloudflare.com/workers/) with KV) so the thing you operate stays small.
@@ -39,9 +41,9 @@ Aliases (including `*@username.is-in.nz`) forward to external addresses. Forward
 
 ## Architecture (implemented baseline)
 
-- **`apps/management`** — Astro **hybrid** app on Cloudflare Pages: prerendered UI (intended `home.is-in.nz`) plus **Pages Functions** at `/api/*` for availability, OTP, session, claim, and forwarding PATCH. Binds **KV** and Cloudflare **Email Service** (`send_email`) via [`apps/management/wrangler.toml`](apps/management/wrangler.toml).
-- **`workers/public-site`** — Minimal Hono worker for `https://{site}.is-in.nz`: reads `webForwardUrl` from KV and issues HTTP redirects (or a short plain message if unset).
-- **`workers/email-inbound`** — Minimal **Email Worker**: resolves `*@{site}.is-in.nz` against KV `site:{site}` and `message.forward(emailForwardDest)` when set. Wire it in **Email Routing** after deploy.
+- **`apps/management`** — Astro **hybrid** app on Cloudflare Pages: prerendered UI (intended `home.is-in.nz`) plus `/api/*` for availability, OTP, session, claim, and forwarding. Binds **KV** and Cloudflare **Email Service** (`send_email`) via [`apps/management/wrangler.toml`](apps/management/wrangler.toml). Site documents in KV use versioned JSON maps (`webForwards`, `emailAliases`); catch-all rules use the `"*"` key.
+- **`workers/public-site`** — Plain `fetch` worker for `https://{site}.is-in.nz`: reads `site:{name}` from KV via `parseSiteRecord`, resolves a path with `resolveWebForward`, and redirects (or a short plain message if unset).
+- **`workers/email-inbound`** — **Email Worker**: resolves `*@{site}.is-in.nz` against KV, matches `emailAliases` (including catch-all `"*"`), and forwards to all configured destinations. Wire it with a **zone catch-all** Email Routing rule after deploy.
 - **Cloudflare Pages** — `pnpm build:management` then `wrangler pages deploy` from `apps/management` (see [`scripts/deploy-pages.sh`](scripts/deploy-pages.sh)).
 
 ```mermaid
@@ -81,9 +83,9 @@ Use one Cloudflare account with **Wrangler environments** and **separate KV name
 
 ## Secrets and local development
 
-1. **`SESSION_SECRET`:** copy [`apps/management/.dev.vars.example`](apps/management/.dev.vars.example) to `apps/management/.dev.vars` (required for all `/api/*` routes). Without it, API calls return `{"error":"server_misconfigured"}`. Deployed: `cd apps/management && wrangler secret put SESSION_SECRET` (and `-e staging` for staging).
-2. **KV IDs:** create namespaces with `wrangler kv namespace create "is-in-kv"` (and a staging twin). Paste IDs into **`apps/management/wrangler.toml`**, **`workers/public-site/wrangler.toml`**, and **`workers/email-inbound/wrangler.toml`** for each environment.
-3. **Routes:** point `*.is-in.nz` (excluding `home*`) at `public-site`. Attach `email-inbound` to Email Routing rules for the subdomain addresses you want dynamically forwarded.
+1. **`SESSION_SECRET`:** copy [`apps/management/.dev.vars.example`](apps/management/.dev.vars.example) to `apps/management/.dev.vars` (required for authenticated `/api/*` routes). Without it, protected API calls return `{"error":"server_misconfigured"}`; `GET /api/health` still returns `{ "ok": true }`. Deployed: `cd apps/management && wrangler secret put SESSION_SECRET` (and `-e staging` for staging).
+2. **KV IDs:** create namespaces with `wrangler kv namespace create "is-in-kv"` (and a staging twin). Copy [`apps/management/wrangler.toml.example`](apps/management/wrangler.toml.example) (and the worker examples) to `wrangler.toml`, paste IDs into **all three** deployables for each environment.
+3. **Routes:** point `*.is-in.nz` (excluding `home*`) at `public-site`. Add a **catch-all** Email Routing rule to `email-inbound` for dynamic forwarding.
 
 ## Cloudflare Email Service (OTP)
 
@@ -99,7 +101,22 @@ If Email Service cannot be enabled on the zone, follow the fallback order in [AD
 
 ## Email forwarding destination (MVP)
 
-Saving a destination in the dashboard writes `emailForwardDest` on the site record in KV. **`workers/email-inbound`** forwards matching inbound mail when Email Routing delivers to that worker. You still need correct **MX / Email Routing** on the zone—see [ADR-0005](docs/architectural-decision-records/ADR-0005-inbound-email-forwarding.md).
+Saving a destination in the dashboard writes a catch-all entry at `emailAliases["*"]` on the site record in KV. **`workers/email-inbound`** forwards matching inbound mail when Email Routing delivers to that worker. Forward targets must be **verified destinations** in your Cloudflare account—see [ADR-0005](docs/architectural-decision-records/ADR-0005-inbound-email-forwarding.md).
+
+## Self-host (free) vs hosted multi-tenant
+
+| Mode | OTP | Moderation | Typical use |
+| ---- | --- | ---------- | ----------- |
+| **Self-host** | Set `AUTH_MODE=operator` and `OTP_ALLOWLIST` to verified inboxes only (free on all plans) | `SUBDOMAIN_MODERATION=off` | Your domain, household, club |
+| **Hosted is-in.nz** | `AUTH_MODE=public` (requires **Workers Paid** for arbitrary OTP recipients) | `SUBDOMAIN_MODERATION=on` | Public sign-up on `is-in.nz` |
+
+Self-host checklist:
+
+1. Fork this repo (GPL-3.0).
+2. Copy the three `wrangler.toml.example` files to `wrangler.toml` and set `ROOT_DOMAIN`, `PRODUCT_NAME`, KV IDs, and operator vars.
+3. Deploy management, `public-site`, and `email-inbound` with the **same KV namespace**.
+4. Configure MX + one **catch-all** Email Routing rule → `email-inbound`.
+5. Verify forward destinations in Email Routing; set `OTP_ALLOWLIST` to your inbox for operator-mode sign-in.
 
 ## Monorepo commands
 
@@ -150,7 +167,7 @@ See [`docs/development.md`](docs/development.md) for CI, security scanning, and 
 
 Each **user** ties an email address to one or more subdomains (MVP UI assumes one site per user; KV allows a list).
 
-Each **subdomain** owns structured fields in KV (profile and `/go` routes are not implemented in this milestone).
+Each **subdomain** owns a versioned `SiteRecord` in KV (`webForwards` and `emailAliases` maps; catch-all uses `"*"`). Profile pages and full `/go` UI are not shipped yet; web and email catch-all forwarding are.
 
 ## What we are not building
 
