@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_PRODUCT_FOOTER } from "../operatorConfig.js";
 import { buildOtpEmailContent, formatOtpCode } from "./otpEmail.js";
 
 describe("formatOtpCode", () => {
@@ -21,7 +22,7 @@ describe("buildOtpEmailContent", () => {
     expect(content.html).toContain(
       "If you didn't request this code, you can safely ignore this email.",
     );
-    expect(content.html).toContain("is-in.nz — your place on the internet.");
+    expect(content.html).toContain(DEFAULT_PRODUCT_FOOTER);
     expect(content.html).toContain("background-color:#ffffff");
     expect(content.html).toContain("border:1px solid #e8e6e3");
     expect(content.html).toContain("font-size:64px");
@@ -35,6 +36,6 @@ describe("buildOtpEmailContent", () => {
     expect(content.text).toContain(
       "If you didn't request this code, you can safely ignore this email.",
     );
-    expect(content.text).toContain("is-in.nz — your place on the internet.");
+    expect(content.text).toContain(DEFAULT_PRODUCT_FOOTER);
   });
 });

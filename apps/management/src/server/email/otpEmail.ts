@@ -1,3 +1,5 @@
+import { DEFAULT_PRODUCT_FOOTER } from "../operatorConfig.js";
+
 /** Inlined from apps/management/public/styles.css (light theme). */
 const PAGE_BG = "#ffffff";
 const FG = "#1c1b19";
@@ -15,16 +17,15 @@ export function formatOtpCode(code: string): string {
 export function buildOtpEmailContent({
   code,
   expiresMinutes,
-  productName = "is-in.nz",
+  footer = DEFAULT_PRODUCT_FOOTER,
 }: {
   code: string;
   expiresMinutes: number;
-  productName?: string;
+  footer?: string;
 }): { html: string; text: string } {
   const displayCode = formatOtpCode(code);
   const expiryLine = `This code will expire in ${expiresMinutes} minutes.`;
   const ignoreLine = "If you didn't request this code, you can safely ignore this email.";
-  const footer = `${productName} — your place on the internet.`;
 
   const text = [
     "Here is your sign in code",

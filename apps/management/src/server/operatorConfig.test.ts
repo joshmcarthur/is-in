@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { isOtpRecipientAllowed, parseAuthMode, productName } from "./operatorConfig";
+import {
+  DEFAULT_PRODUCT_FOOTER,
+  formatProductFooter,
+  isOtpRecipientAllowed,
+  parseAuthMode,
+  productFooter,
+  productName,
+} from "./operatorConfig";
 import { createTestEnv } from "./testing/testEnv";
 
 describe("operatorConfig", () => {
@@ -30,5 +37,17 @@ describe("operatorConfig", () => {
       overrides: { PRODUCT_NAME: "My Zone", ROOT_DOMAIN: "example.com" },
     });
     expect(productName(env)).toBe("My Zone");
+  });
+
+  it("formats product footer with default tagline", () => {
+    expect(formatProductFooter("is-in.nz")).toBe(DEFAULT_PRODUCT_FOOTER);
+    expect(formatProductFooter("My Zone")).toBe("My Zone — your place on the NZ internet.");
+  });
+
+  it("derives product footer from env", () => {
+    const { env } = createTestEnv({
+      overrides: { PRODUCT_NAME: "My Zone", ROOT_DOMAIN: "example.com" },
+    });
+    expect(productFooter(env)).toBe("My Zone — your place on the NZ internet.");
   });
 });

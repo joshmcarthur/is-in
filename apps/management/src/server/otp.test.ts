@@ -1,6 +1,7 @@
 import { otpKey } from "@is-in/shared";
 import { describe, expect, it, vi } from "vitest";
 import * as crypto from "./crypto.js";
+import { DEFAULT_PRODUCT_FOOTER } from "./operatorConfig.js";
 import { callControlPlane, callControlPlaneJson } from "./testing/api.js";
 import { TEST_EMAIL, useControlPlaneTest } from "./testing/hooks.js";
 import { seedOtp } from "./testing/otp.js";
@@ -53,7 +54,7 @@ describe("otp", () => {
     expect(email?.html).toContain(
       "If you didn't request this code, you can safely ignore this email.",
     );
-    expect(email?.html).toContain("is-in.nz — your place on the internet.");
+    expect(email?.html).toContain(DEFAULT_PRODUCT_FOOTER);
   });
 
   it("returns email_unavailable when send fails", async () => {

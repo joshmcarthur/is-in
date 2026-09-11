@@ -30,6 +30,27 @@ export function isOtpRecipientAllowed(email: string, env: ManagementEnv): boolea
   return allowlist.has(canonicalEmail(email));
 }
 
+export const DEFAULT_PRODUCT_NAME = "is-in.nz";
+
+/** Tagline shown after the product name (e.g. OTP email footers). */
+export const DEFAULT_PRODUCT_TAGLINE = "your place on the NZ internet.";
+
+export const DEFAULT_PRODUCT_FOOTER = formatProductFooter(
+  DEFAULT_PRODUCT_NAME,
+  DEFAULT_PRODUCT_TAGLINE,
+);
+
+export function formatProductFooter(
+  name: string,
+  tagline: string = DEFAULT_PRODUCT_TAGLINE,
+): string {
+  return `${name} — ${tagline}`;
+}
+
 export function productName(env: Pick<ManagementEnv, "PRODUCT_NAME" | "ROOT_DOMAIN">): string {
-  return env.PRODUCT_NAME?.trim() || env.ROOT_DOMAIN?.trim() || "is-in.nz";
+  return env.PRODUCT_NAME?.trim() || env.ROOT_DOMAIN?.trim() || DEFAULT_PRODUCT_NAME;
+}
+
+export function productFooter(env: Pick<ManagementEnv, "PRODUCT_NAME" | "ROOT_DOMAIN">): string {
+  return formatProductFooter(productName(env));
 }

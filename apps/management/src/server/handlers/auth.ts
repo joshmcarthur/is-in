@@ -9,7 +9,7 @@ import { appendSessionCookie } from "../cookies";
 import { hmacSha256Hex, randomOtp6, randomSessionId, timingSafeEqualHex } from "../crypto";
 import { buildOtpEmailContent } from "../email/otpEmail";
 import { json } from "../http";
-import { isOtpRecipientAllowed, productName } from "../operatorConfig";
+import { isOtpRecipientAllowed, productFooter } from "../operatorConfig";
 import {
   buildRateLimitKey,
   consumeRateLimit,
@@ -42,7 +42,7 @@ async function deliverOtpEmail(
     const { html, text } = buildOtpEmailContent({
       code,
       expiresMinutes: OTP_TTL_SEC / 60,
-      productName: productName(env),
+      footer: productFooter(env),
     });
     await env.EMAIL.send({
       from: env.OTP_FROM,
