@@ -11,11 +11,13 @@ case "${target}" in
   staging)
     export CLOUDFLARE_ENV=staging
     export PUBLIC_ROOT_DOMAIN=test.is-in.nz
+    export PUBLIC_PRODUCT_NAME=is-in.nz
     export PUBLIC_SITE_URL=https://test.is-in.nz
     ;;
   production)
     unset CLOUDFLARE_ENV
     export PUBLIC_ROOT_DOMAIN=is-in.nz
+    export PUBLIC_PRODUCT_NAME=is-in.nz
     export PUBLIC_SITE_URL=https://home.is-in.nz
     ;;
   *)

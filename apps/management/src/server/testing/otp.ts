@@ -11,6 +11,6 @@ export async function seedOtp(env: ManagementEnv, email: string, code: string): 
   const exp = Math.floor(Date.now() / 1000) + OTP_TTL_SEC;
   const rec: OtpRecord = { hash, exp, attempts: 0 };
   await env.KV.put(otpKey(canonical), JSON.stringify(rec), {
-    expirationTtl: OTP_TTL_SEC + 60,
+    ttlSec: OTP_TTL_SEC + 60,
   });
 }

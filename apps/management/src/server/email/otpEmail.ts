@@ -15,14 +15,16 @@ export function formatOtpCode(code: string): string {
 export function buildOtpEmailContent({
   code,
   expiresMinutes,
+  productName = "is-in.nz",
 }: {
   code: string;
   expiresMinutes: number;
+  productName?: string;
 }): { html: string; text: string } {
   const displayCode = formatOtpCode(code);
   const expiryLine = `This code will expire in ${expiresMinutes} minutes.`;
   const ignoreLine = "If you didn't request this code, you can safely ignore this email.";
-  const footer = "is-in.nz — your place on the NZ internet.";
+  const footer = `${productName} — your place on the internet.`;
 
   const text = [
     "Here is your sign in code",

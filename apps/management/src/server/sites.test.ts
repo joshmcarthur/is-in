@@ -114,6 +114,24 @@ describe("sites", () => {
     expect(body).toEqual({ error: "moderation_unavailable" });
   });
 
+  it("skips moderation when SUBDOMAIN_MODERATION is unset", async () => {
+    const env = {
+      ...test.env,
+      SUBDOMAIN_MODERATION: undefined,
+      AI: createMockAi({ allowed: false, reason: "brand impersonation" }),
+    };
+    const sid = await signInViaOtp(env, TEST_EMAIL);
+    const { status, body } = await callControlPlaneJson<{ ok: boolean }>(["v1", "sites", "claim"], {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ subdomain: "newname" }),
+      env,
+      ...withSessionCookie(sid),
+    });
+    expect(status).toBe(200);
+    expect(body?.ok).toBe(true);
+  });
+
   it("PATCH forwarding updates and clears fields", async () => {
     const sid = await signInViaOtp(test.env, TEST_EMAIL);
     await callControlPlane(["v1", "sites", "claim"], {

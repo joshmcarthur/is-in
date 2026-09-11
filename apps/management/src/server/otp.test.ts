@@ -53,7 +53,7 @@ describe("otp", () => {
     expect(email?.html).toContain(
       "If you didn't request this code, you can safely ignore this email.",
     );
-    expect(email?.html).toContain("is-in.nz — your place on the NZ internet.");
+    expect(email?.html).toContain("is-in.nz — your place on the internet.");
   });
 
   it("returns email_unavailable when send fails", async () => {
@@ -134,5 +134,23 @@ describe("otp", () => {
     expect(verifyRes?.status).toBe(200);
     if (!verifyRes) throw new Error("expected response");
     expect(sessionCookie(verifyRes)).toBeDefined();
+  });
+
+  it("does not send OTP to non-allowlisted addresses in operator mode", async () => {
+    const env = {
+      ...test.env,
+      AUTH_MODE: "operator",
+      OTP_ALLOWLIST: "admin@example.com",
+    };
+    const { status, body } = await callControlPlaneJson(["v1", "auth", "otp", "start"], {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: TEST_EMAIL }),
+      env,
+    });
+    expect(status).toBe(200);
+    expect(body).toEqual({ ok: true });
+    expect(await env.KV.get(otpKey(TEST_EMAIL))).toBeNull();
+    expect(test.sentEmails).toHaveLength(0);
   });
 });
