@@ -1,8 +1,10 @@
-# Cloudflare Worker + Astro (control plane API at /api/*).
-# Replace KV IDs before deploy. Secrets: `wrangler secret put SESSION_SECRET` (from apps/management).
 name = "is-in-management"
-compatibility_date = "2025-01-01"
+compatibility_date = "2026-06-02"
 main = "@astrojs/cloudflare/entrypoints/server"
+
+[observability]
+enabled = true
+head_sampling_rate = 1
 
 [assets]
 directory = "./dist"
@@ -15,10 +17,14 @@ id = "779184d4ccd842dda9a33fb40845fa85"
 preview_id = "2d733b8ee95746f6bdd3693ef2de6b7d"
 
 [vars]
+ROOT_DOMAIN = "is-in.nz"
+PRODUCT_NAME = "is-in.nz"
+MANAGEMENT_HOST = "home.is-in.nz"
 OTP_FROM = "noreply@is-in.nz"
 OTP_SUBJECT = "Your is-in.nz sign-in code"
+AUTH_MODE = "public"
+SUBDOMAIN_MODERATION = "on"
 
-# Sender is set in app code (OTP_FROM). Restrict via Email Service domain verification in production.
 [[send_email]]
 name = "EMAIL"
 
@@ -40,8 +46,13 @@ id = "f3578122d7424930ab2d78c34abdf22c"
 preview_id = "f6d6ae7d37e44bb987df340aaebdd17b"
 
 [env.staging.vars]
+ROOT_DOMAIN = "test.is-in.nz"
+PRODUCT_NAME = "is-in.nz"
+MANAGEMENT_HOST = "test.is-in.nz"
 OTP_FROM = "noreply@is-in.nz"
 OTP_SUBJECT = "Your is-in.nz sign-in code (test)"
+AUTH_MODE = "public"
+SUBDOMAIN_MODERATION = "on"
 
 [[env.staging.send_email]]
 name = "EMAIL"

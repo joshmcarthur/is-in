@@ -1,0 +1,67 @@
+# Cloudflare Worker + Astro (control plane API at /api/*).
+# Copy to wrangler.toml and replace placeholder KV IDs before deploy.
+# Secrets: `wrangler secret put SESSION_SECRET` (from apps/management).
+name = "is-in-management"
+compatibility_date = "2026-06-02"
+main = "@astrojs/cloudflare/entrypoints/server"
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+run_worker_first = ["/*", "!/_astro/*"]
+
+[[kv_namespaces]]
+binding = "KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+preview_id = "REPLACE_WITH_KV_PREVIEW_ID"
+
+[vars]
+ROOT_DOMAIN = "example.com"
+PRODUCT_NAME = "example.com"
+MANAGEMENT_HOST = "home.example.com"
+OTP_FROM = "noreply@example.com"
+OTP_SUBJECT = "Your sign-in code"
+AUTH_MODE = "operator"
+OTP_ALLOWLIST = "you@example.com"
+SUBDOMAIN_MODERATION = "off"
+
+[[send_email]]
+name = "EMAIL"
+
+# Optional: enable AI moderation for public claim surfaces
+# [ai]
+# binding = "AI"
+# remote = true
+
+[env.staging]
+name = "is-in-management-staging"
+
+[env.staging.assets]
+directory = "./dist"
+binding = "ASSETS"
+run_worker_first = ["/*", "!/_astro/*"]
+
+[[env.staging.kv_namespaces]]
+binding = "KV"
+id = "REPLACE_WITH_STAGING_KV_ID"
+preview_id = "REPLACE_WITH_STAGING_KV_PREVIEW_ID"
+
+[env.staging.vars]
+ROOT_DOMAIN = "test.example.com"
+PRODUCT_NAME = "test.example.com"
+MANAGEMENT_HOST = "test.example.com"
+OTP_FROM = "noreply@example.com"
+OTP_SUBJECT = "Your sign-in code (test)"
+AUTH_MODE = "operator"
+SUBDOMAIN_MODERATION = "off"
+
+[[env.staging.send_email]]
+name = "EMAIL"
+
+[[env.staging.routes]]
+pattern = "test.example.com/*"
+zone_name = "example.com"

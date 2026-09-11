@@ -20,6 +20,7 @@ import {
 } from "@is-in/shared";
 import { json } from "../http";
 import { moderateSubdomain } from "../moderation/subdomain";
+import { productName } from "../operatorConfig";
 import { readSession } from "../session";
 import { isSafeForwardUrl, isValidDestinationEmail } from "../validate";
 import type { ControlPlaneHandler } from "./types";
@@ -126,9 +127,9 @@ export const postSitesClaim: ControlPlaneHandler = async (request, env) => {
     return json({ error: "taken" }, 409);
   }
 
-  if (env.SUBDOMAIN_MODERATION !== "off") {
+  if (env.SUBDOMAIN_MODERATION === "on") {
     if (!env.AI) return json({ error: "server_misconfigured" }, 500);
-    const mod = await moderateSubdomain(env.AI, subdomain);
+    const mod = await moderateSubdomain(env.AI, subdomain, productName(env));
     if (!mod.ok && mod.reason === "policy") {
       return json({ error: "subdomain_not_allowed" }, 400);
     }

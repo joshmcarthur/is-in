@@ -22,7 +22,7 @@ export type RateLimitResult = {
 /** Subset of KV used by rate limiting (easier to mock in tests). */
 export type RateLimitKv = {
   get(key: string): Promise<string | null>;
-  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
+  put(key: string, value: string, options?: { ttlSec?: number }): Promise<void>;
 };
 
 export async function rateLimitBucket(secret: string, ...parts: string[]): Promise<string> {
@@ -48,6 +48,6 @@ export async function consumeRateLimit(
     return { allowed: false, count: current };
   }
   const next = current + 1;
-  await kv.put(key, String(next), { expirationTtl: windowSec });
+  await kv.put(key, String(next), { ttlSec: windowSec });
   return { allowed: true, count: next };
 }

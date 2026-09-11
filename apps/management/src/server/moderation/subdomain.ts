@@ -9,7 +9,9 @@ type ModerationVerdict = {
   reason: string | null;
 };
 
-const SYSTEM_PROMPT = `You are a subdomain name moderator for is-in.nz, a personal identity platform where users claim names like "josh.is-in.nz".
+const SYSTEM_PROMPT = (
+  platformName: string,
+) => `You are a subdomain name moderator for ${platformName}, a personal identity platform where users claim names like "josh.${platformName.includes(".") ? platformName.split(".").slice(-2).join(".") : platformName}".
 
 Evaluate whether the proposed subdomain is appropriate for public use. Reject names that:
 - Contain hate speech, slurs, or sexual/explicit terms
@@ -124,12 +126,16 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   }
 }
 
-export async function moderateSubdomain(ai: Ai, subdomain: string): Promise<ModerationResult> {
+export async function moderateSubdomain(
+  ai: Ai,
+  subdomain: string,
+  platformName = "is-in.nz",
+): Promise<ModerationResult> {
   try {
     const result = await withTimeout(
       ai.run(SUBDOMAIN_MODERATION_MODEL, {
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: SYSTEM_PROMPT(platformName) },
           {
             role: "user",
             content: `Subdomain to evaluate: "${subdomain}"`,

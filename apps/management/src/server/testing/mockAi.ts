@@ -31,5 +31,5 @@ export function createMockAi(
 }
 
 export function withModerationOff(env: ManagementEnv): ManagementEnv {
-  return { ...env, SUBDOMAIN_MODERATION: "off" };
+  return { ...env, SUBDOMAIN_MODERATION: undefined };
 }

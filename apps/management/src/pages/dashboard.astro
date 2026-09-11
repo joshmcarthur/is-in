@@ -2,6 +2,7 @@
 export const prerender = true;
 
 import Layout from "../layouts/Layout.astro";
+import { ROOT_DOMAIN } from "../siteDomain";
 
 const docsUrl = "https://github.com/joshmcarthur/is-in#readme";
 const contactUrl = "https://github.com/joshmcarthur/is-in/issues";
@@ -42,7 +43,7 @@ const contactUrl = "https://github.com/joshmcarthur/is-in/issues";
         </span>
         <div class="feature-card__body">
           <h2 class="feature-card__title">Email aliases</h2>
-          <p class="feature-card__desc muted" id="aliases-desc">Create @yourname.is-in.nz addresses</p>
+          <p class="feature-card__desc muted" id="aliases-desc">Create @yourname.{ROOT_DOMAIN} addresses</p>
           <p class="feature-card__note">Coming later</p>
         </div>
       </article>

@@ -3,12 +3,17 @@ import type { KvStore } from "@is-in/shared";
 
 export interface ManagementEnv {
   KV: KvStore;
-  AI: Ai;
+  AI?: Ai;
   EMAIL?: SendEmail;
   SESSION_SECRET: string;
+  ROOT_DOMAIN: string;
+  PRODUCT_NAME?: string;
+  MANAGEMENT_HOST?: string;
   OTP_FROM: string;
   OTP_SUBJECT: string;
-  /** Set to `"off"` in local dev to skip Workers AI moderation. Never use in staging/production. */
+  AUTH_MODE?: string;
+  OTP_ALLOWLIST?: string;
+  /** Set to `"on"` to enable Workers AI subdomain moderation. Default off for forks. */
   SUBDOMAIN_MODERATION?: string;
   ASSETS?: Fetcher;
 }

@@ -9,6 +9,7 @@ import { appendSessionCookie } from "../cookies";
 import { hmacSha256Hex, randomOtp6, randomSessionId, timingSafeEqualHex } from "../crypto";
 import { buildOtpEmailContent } from "../email/otpEmail";
 import { json } from "../http";
+import { isOtpRecipientAllowed, productFooter } from "../operatorConfig";
 import {
   buildRateLimitKey,
   consumeRateLimit,
@@ -41,6 +42,7 @@ async function deliverOtpEmail(
     const { html, text } = buildOtpEmailContent({
       code,
       expiresMinutes: OTP_TTL_SEC / 60,
+      footer: productFooter(env),
     });
     await env.EMAIL.send({
       from: env.OTP_FROM,
@@ -72,6 +74,9 @@ export const postOtpStart: ControlPlaneHandler = async (request, env) => {
     return json({ ok: true });
   }
   const email = canonicalEmail(emailRaw);
+  if (!isOtpRecipientAllowed(email, env)) {
+    return json({ ok: true });
+  }
   const ip = clientIp(request);
   const secret = env.SESSION_SECRET;
 
@@ -106,7 +111,7 @@ export const postOtpStart: ControlPlaneHandler = async (request, env) => {
   const hash = await hmacSha256Hex(env.SESSION_SECRET, `otp:${email}:${code}`);
   const exp = Math.floor(Date.now() / 1000) + OTP_TTL_SEC;
   const rec: OtpRecord = { hash, exp, attempts: 0 };
-  await env.KV.put(otpKey(email), JSON.stringify(rec), { expirationTtl: OTP_TTL_SEC + 60 });
+  await env.KV.put(otpKey(email), JSON.stringify(rec), { ttlSec: OTP_TTL_SEC + 60 });
 
   return json({ ok: true });
 };
@@ -170,7 +175,7 @@ export const postOtpVerify: ControlPlaneHandler = async (request, env) => {
   const expect = await hmacSha256Hex(env.SESSION_SECRET, `otp:${email}:${code}`);
   if (!timingSafeEqualHex(expect, otp.hash)) {
     otp.attempts += 1;
-    await env.KV.put(key, JSON.stringify(otp), { expirationTtl: OTP_TTL_SEC + 60 });
+    await env.KV.put(key, JSON.stringify(otp), { ttlSec: OTP_TTL_SEC + 60 });
     return json({ error: "invalid_code" }, 401);
   }
   await env.KV.delete(key);
@@ -178,7 +183,7 @@ export const postOtpVerify: ControlPlaneHandler = async (request, env) => {
   const sid = randomSessionId();
   const sess: SessionRecord = { email, exp: now + SESSION_TTL_SEC };
   await env.KV.put(sessionKey(sid), JSON.stringify(sess), {
-    expirationTtl: SESSION_TTL_SEC + 3600,
+    ttlSec: SESSION_TTL_SEC + 3600,
   });
 
   const headers = new Headers();

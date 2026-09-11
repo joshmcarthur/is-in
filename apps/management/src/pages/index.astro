@@ -2,9 +2,10 @@
 export const prerender = true;
 
 import Layout from "../layouts/Layout.astro";
+import { ROOT_DOMAIN } from "../siteDomain";
 ---
 <Layout title="Home">
-    <h1><span class="title-wildcard">*.&nbsp;</span>is-in.nz</h1>
+    <h1><span class="title-wildcard">*.&nbsp;</span>{ROOT_DOMAIN}</h1>
     <p class="lede">
       A quiet corner of the web: one hostname with a profile, short links you can
       repoint, and mail forwarded to where you already read it—without the noise
