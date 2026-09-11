@@ -8,6 +8,7 @@
     "deploy": "wrangler deploy",
     "deploy:staging": "wrangler deploy -e staging",
     "typecheck": "tsc --noEmit",
+    "cf-typegen": "wrangler types --include-runtime false",
     "test": "vitest run"
   },
   "dependencies": {

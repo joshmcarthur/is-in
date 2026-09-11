@@ -1,43 +1,57 @@
-import { resolveEmailAlias, type SiteRecord, siteKey } from "@is-in/shared";
+import {
+  parseSiteFromEmailAddress,
+  parseSiteRecord,
+  resolveEmailAlias,
+  siteKey,
+  wrapCloudflareKv,
+} from "@is-in/shared";
 import { parseRecipientTo } from "./parse-recipient.js";
 
-export type EmailEnv = {
-  KV: KVNamespace;
-  ROOT_DOMAIN: string;
-};
+type DropReason = "invalid_recipient" | "invalid_address" | "no_site" | "no_alias";
+
+function logDrop(reason: DropReason, detail: Record<string, string>): void {
+  console.warn("email_inbound_drop", { reason, ...detail });
+}
 
 export default {
-  async email(
-    message: ForwardableEmailMessage,
-    env: EmailEnv,
-    _ctx: ExecutionContext,
-  ): Promise<void> {
-    const root = (env.ROOT_DOMAIN || "is-in.nz").toLowerCase();
+  async email(message: ForwardableEmailMessage, env: Env, _ctx: ExecutionContext): Promise<void> {
+    const root = env.ROOT_DOMAIN.toLowerCase();
     const toHeader = message.headers.get("to") ?? message.headers.get("To") ?? "";
     const addr = parseRecipientTo(toHeader);
-    if (!addr) return;
-
-    const at = addr.lastIndexOf("@");
-    if (at <= 0) return;
-    const domain = addr.slice(at + 1).toLowerCase();
-    const suffix = `.${root}`;
-    if (!domain.endsWith(suffix) || domain === root) return;
-    const sub = domain.slice(0, -suffix.length);
-    if (!sub || sub.includes(".")) return;
-
-    const raw = await env.KV.get(siteKey(sub));
-    if (!raw) return;
-    let site: SiteRecord;
-    try {
-      site = JSON.parse(raw) as SiteRecord;
-    } catch {
+    if (!addr) {
+      logDrop("invalid_recipient", { to: toHeader.slice(0, 120) });
       return;
     }
+
+    const sub = parseSiteFromEmailAddress(addr, root);
+    if (!sub) {
+      logDrop("invalid_address", { addr });
+      return;
+    }
+
+    const store = wrapCloudflareKv(env.KV);
+    const raw = await store.get(siteKey(sub));
+    if (!raw) {
+      logDrop("no_site", { subdomain: sub, addr });
+      return;
+    }
+    const site = parseSiteRecord(raw);
+    if (!site) {
+      logDrop("no_site", { subdomain: sub, addr });
+      return;
+    }
+
+    const at = addr.lastIndexOf("@");
     const local = addr.slice(0, at);
     const alias = resolveEmailAlias(site, local);
-    const destination = alias?.destinations[0];
-    if (!destination) return;
+    const destinations = alias?.destinations ?? [];
+    if (destinations.length === 0) {
+      logDrop("no_alias", { subdomain: sub, local, addr });
+      return;
+    }
 
-    await message.forward(destination);
+    for (const destination of destinations) {
+      await message.forward(destination);
+    }
   },
-} satisfies ExportedHandler<EmailEnv>;
+} satisfies ExportedHandler<Env>;

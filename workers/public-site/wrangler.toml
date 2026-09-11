@@ -1,6 +1,10 @@
 name = "is-in-public-site"
 main = "src/index.ts"
-compatibility_date = "2025-01-01"
+compatibility_date = "2026-06-02"
+
+[observability]
+enabled = true
+head_sampling_rate = 1
 
 [[kv_namespaces]]
 binding = "KV"
@@ -9,6 +13,7 @@ preview_id = "2d733b8ee95746f6bdd3693ef2de6b7d"
 
 [vars]
 ROOT_DOMAIN = "is-in.nz"
+PRODUCT_NAME = "is-in.nz"
 
 [env.staging]
 name = "is-in-public-site-staging"
@@ -20,6 +25,7 @@ preview_id = "f6d6ae7d37e44bb987df340aaebdd17b"
 
 [env.staging.vars]
 ROOT_DOMAIN = "test.is-in.nz"
+PRODUCT_NAME = "is-in.nz"
 
 [[env.staging.routes]]
 pattern = "*.test.is-in.nz/*"

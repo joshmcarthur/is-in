@@ -1,39 +1,36 @@
-import { resolveWebForward, type SiteRecord, siteKey } from "@is-in/shared";
-import { Hono } from "hono";
-import { parseSiteHost } from "./parse-site-host";
+import {
+  parseSiteHost,
+  parseSiteRecord,
+  resolveWebForward,
+  siteKey,
+  wrapCloudflareKv,
+} from "@is-in/shared";
 
-export type PublicEnv = {
-  KV: KVNamespace;
-  ROOT_DOMAIN: string;
-};
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const host = request.headers.get("host") ?? "";
+    const root = env.ROOT_DOMAIN;
+    const productName = env.PRODUCT_NAME ?? root;
+    const site = parseSiteHost(host, root);
+    if (!site) {
+      return new Response(productName, { status: 404 });
+    }
 
-const app = new Hono<{ Bindings: PublicEnv }>();
+    const store = wrapCloudflareKv(env.KV);
+    const raw = await store.get(siteKey(site));
+    if (!raw) {
+      return new Response("Site not found.", { status: 404 });
+    }
+    const record = parseSiteRecord(raw);
+    if (!record) {
+      return new Response("Site not found.", { status: 404 });
+    }
 
-app.all("*", async (c) => {
-  const host = c.req.header("host") ?? "";
-  const root = c.env.ROOT_DOMAIN;
-  const site = parseSiteHost(host, root);
-  if (!site) {
-    return c.text("is-in.nz", 404);
-  }
+    const rule = resolveWebForward(record, new URL(request.url).pathname);
+    if (!rule) {
+      return new Response("No web forwarding configured yet.", { status: 200 });
+    }
 
-  const raw = await c.env.KV.get(siteKey(site));
-  if (!raw) {
-    return c.text("Site not found.", 404);
-  }
-  let record: SiteRecord;
-  try {
-    record = JSON.parse(raw) as SiteRecord;
-  } catch {
-    return c.text("Site not found.", 404);
-  }
-
-  const rule = resolveWebForward(record, c.req.path);
-  if (!rule) {
-    return c.text("No web forwarding configured yet.", 200);
-  }
-
-  return c.redirect(rule.url, rule.status ?? 302);
-});
-
-export default { fetch: app.fetch };
+    return Response.redirect(rule.url, rule.status ?? 302);
+  },
+} satisfies ExportedHandler<Env>;

@@ -9,3 +9,11 @@ export function parseSiteHost(host: string, rootDomain: string): string | null {
   if (!sub || sub.includes(".")) return null;
   return sub;
 }
+
+/** Subdomain from a full email address on a zone (e.g. `josh` from `x@josh.example.com`). */
+export function parseSiteFromEmailAddress(address: string, rootDomain: string): string | null {
+  const addr = address.trim().toLowerCase();
+  const at = addr.lastIndexOf("@");
+  if (at <= 0) return null;
+  return parseSiteHost(addr.slice(at + 1), rootDomain);
+}
