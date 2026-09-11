@@ -15,11 +15,5 @@ export function parseSiteFromEmailAddress(address: string, rootDomain: string): 
   const addr = address.trim().toLowerCase();
   const at = addr.lastIndexOf("@");
   if (at <= 0) return null;
-  const domain = addr.slice(at + 1);
-  const root = rootDomain.toLowerCase();
-  const suffix = `.${root}`;
-  if (!domain.endsWith(suffix) || domain === root) return null;
-  const sub = domain.slice(0, -suffix.length);
-  if (!sub || sub.includes(".")) return null;
-  return sub;
+  return parseSiteHost(addr.slice(at + 1), rootDomain);
 }
