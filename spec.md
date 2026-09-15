@@ -4,7 +4,7 @@
 
 **Goal:** Gate public sign-ups at 150 claimed sites with operator controls and public capacity visibility, per ADR-0007 in refs/lore/architectural-decision-records.
 
-**Architecture:** Wrangler vars (`SIGNUPS_ENABLED`, `MAX_CLAIMED_SITES`) plus a KV counter (`platform:stats`) incremented on successful claim. Claim handler checks mode and cap before moderation/KV write. Optional read-only API exposes remaining slots for `/claim` scarcity copy. Forward-destination registry deferred to a follow-up task unless needed before launch.
+**Architecture:** Wrangler vars (`SIGNUPS_ENABLED`, `MAX_CLAIMED_SITES`) plus a KV counter (`platform:stats`) incremented on successful claim. Claim handler checks enabled flag and cap before moderation/KV write. Optional read-only API exposes remaining slots for `/claim` scarcity copy. Forward-destination registry deferred to a follow-up task unless needed before launch.
 
 **Tech Stack:** TypeScript, Hono control plane (`apps/management`), `@is-in/shared` KV helpers, Vitest, Astro claim UI.
 
@@ -174,7 +174,7 @@ export function signupsAcceptingClaims(
   env: Pick<ManagementEnv, "SIGNUPS_ENABLED" | "MAX_CLAIMED_SITES">,
   claimedSites: number,
 ): boolean {
-  if (parseSignupsEnabled(env.SIGNUPS_ENABLED) === "closed") return false;
+  if (!parseSignupsEnabled(env.SIGNUPS_ENABLED)) return false;
   const cap = parseMaxClaimedSites(env.MAX_CLAIMED_SITES);
   if (cap === null) return true;
   return claimedSites < cap;
@@ -227,7 +227,7 @@ Run: `pnpm --filter management test -- platformCapacity`
 
 ```typescript
 it("rejects claim when signups are closed", async () => {
-  test.env.SIGNUPS_ENABLED = "closed";
+  test.env.SIGNUPS_ENABLED = "false";
   test.env.MAX_CLAIMED_SITES = "150";
   const sid = await signInViaOtp(test.env, TEST_EMAIL);
   const { status, body } = await callControlPlaneJson(["v1", "sites", "claim"], {
@@ -317,7 +317,7 @@ Run: `pnpm --filter management test -- sites.test`
 In `apps/management/wrangler.toml` `[vars]`:
 
 ```toml
-SIGNUPS_ENABLED = "open"
+SIGNUPS_ENABLED = "true"
 MAX_CLAIMED_SITES = "150"
 ```
 
