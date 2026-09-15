@@ -2,6 +2,8 @@
 
 Settled architecture choices for is-in.nz. Each ADR is a standalone file in this Lore Work (`refs/lore/architectural-decision-records`).
 
+Workflow: [git-lore](https://github.com/joshmcarthur/git-lore) — install the skills, then [use git-lore in your project](https://github.com/joshmcarthur/git-lore#use-git-lore-in-your-project). Read with **read-lore**; add or revise ADRs with **edit-lore**; share with **sync-lore**.
+
 | ADR | Title |
 | --- | --- |
 | [ADR-0001](ADR-0001-otp-email-service.md) | Numeric OTP via Cloudflare Email Service |
@@ -12,11 +14,4 @@ Settled architecture choices for is-in.nz. Each ADR is a standalone file in this
 | [ADR-0006](ADR-0006-staging-environments.md) | Staging environments (same Cloudflare account) |
 | [ADR-0007](ADR-0007-hosted-capacity-and-forwarding-scale.md) | Hosted capacity limits and email forwarding scale |
 
-New ADRs: copy [adr-template.md](adr-template.md), add the next number, commit with `edit-lore` (or equivalent git plumbing) — do not add files under `docs/` in the source tree.
-
-Read locally:
-
-```bash
-git show refs/lore/architectural-decision-records:README.md
-git show refs/lore/architectural-decision-records:ADR-0001-otp-email-service.md
-```
+New ADR: copy [adr-template.md](adr-template.md), assign the next number, record via **edit-lore** on this Work — not under `docs/` in the source tree.
