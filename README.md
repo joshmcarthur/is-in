@@ -70,7 +70,7 @@ flowchart LR
 
 ## Hostnames and environments (multi-stage)
 
-Use one Cloudflare account with **Wrangler environments** and **separate KV namespace IDs** per env (see [ADR-0006](docs/architectural-decision-records/ADR-0006-staging-environments.md)). Use the **same KV binding IDs** on the Pages project (`apps/management/wrangler.toml`), `workers/public-site`, and `workers/email-inbound` so site records are shared.
+Use one Cloudflare account with **Wrangler environments** and **separate KV namespace IDs** per env (see **ADR-0006** in [lore](#how-to-plan-a-feature)). Use the **same KV binding IDs** on the Pages project (`apps/management/wrangler.toml`), `workers/public-site`, and `workers/email-inbound` so site records are shared.
 
 | Environment | Management (Pages + `/api`)                                   | Public HTTP worker                   | Inbound mail worker             |
 | ----------- | ------------------------------------------------------------- | ------------------------------------ | ------------------------------- |
@@ -97,11 +97,11 @@ Outbound sign-in codes use the [`send_email` binding](https://developers.cloudfl
 
 **Local OTP testing:** `astro dev` (`pnpm dev:management`) does not expose the `send_email` binding. Use **`pnpm dev:management:pages`** (build + `wrangler pages dev`) instead. After sign-in, Wrangler logs a path to a local file containing the simulated email body (including the numeric code). See [Email sending — local development](https://developers.cloudflare.com/email-service/local-development/sending/).
 
-If Email Service cannot be enabled on the zone, follow the fallback order in [ADR-0001](docs/architectural-decision-records/ADR-0001-otp-email-service.md).
+If Email Service cannot be enabled on the zone, follow the fallback order in **ADR-0001** (lore).
 
 ## Email forwarding destination (MVP)
 
-Saving a destination in the dashboard writes a catch-all entry at `emailAliases["*"]` on the site record in KV. **`workers/email-inbound`** forwards matching inbound mail when Email Routing delivers to that worker. Forward targets must be **verified destinations** in your Cloudflare account—see [ADR-0005](docs/architectural-decision-records/ADR-0005-inbound-email-forwarding.md).
+Saving a destination in the dashboard writes a catch-all entry at `emailAliases["*"]` on the site record in KV. **`workers/email-inbound`** forwards matching inbound mail when Email Routing delivers to that worker. Forward targets must be **verified destinations** in your Cloudflare account—see **ADR-0005** (lore).
 
 ## Self-host (free) vs hosted multi-tenant
 
@@ -163,6 +163,23 @@ pnpm --filter email-inbound deploy:staging
 
 See [`docs/development.md`](docs/development.md) for CI, security scanning, and conventions for new tests.
 
+## How to plan a feature
+
+Design notes, ADRs, and implementation plans live in **git lore** ([git-lore](https://github.com/joshmcarthur/git-lore)) — curated Markdown on `refs/lore/<work-id>`, separate from the working tree. This repo stays code, tests, and operator docs.
+
+Install the [create-lore, read-lore, edit-lore, and sync-lore skills](https://github.com/joshmcarthur/git-lore#getting-started) in your agent, then follow [Use git-lore in your project](https://github.com/joshmcarthur/git-lore#use-git-lore-in-your-project): create lore on a branch, record decisions as you go, read lore for handoff, [sync lore](https://github.com/joshmcarthur/git-lore/blob/main/skills/sync-lore/SKILL.md) to share refs with the remote. Protocol details: [skills/protocol.md](https://github.com/joshmcarthur/git-lore/blob/main/skills/protocol.md). Optional: [`git lore` CLI](https://github.com/joshmcarthur/git-lore/tree/main/extensions/git-lore) for list/serve without an agent.
+
+**Lore Works in this repository:**
+
+| Work | Ref | Contents |
+| ---- | --- | -------- |
+| Architectural decision records | `refs/lore/architectural-decision-records` | ADR-0001 … ADR-0007 (`README.md` index in that Work) |
+| Hosted capacity (Phase A) | `refs/lore/hosted-capacity` | `plan.md`, `spec.md` |
+
+After [sync-lore](https://github.com/joshmcarthur/git-lore/blob/main/skills/sync-lore/SKILL.md), browse on GitHub via the lore commit tree (see [git-lore: See it in action](https://github.com/joshmcarthur/git-lore#see-it-in-action--dogfooding-git-lore)).
+
+New settled architecture → numbered ADR in **`architectural-decision-records`**, not under `docs/`. New feature → its own work-id (e.g. `hosted-capacity`) with `plan.md` and `spec.md` when needed.
+
 ## Conceptual data model
 
 Each **user** ties an email address to one or more subdomains (MVP UI assumes one site per user; KV allows a list).
@@ -199,4 +216,4 @@ Reserve-address onboarding, the Pages-hosted control API (`/api/*`), the public 
 
 - **Development:** [`docs/development.md`](docs/development.md)
 - **Product brief:** [`docs/init/PLAN.md`](docs/init/PLAN.md)
-- **ADRs:** [`docs/architectural-decision-records/`](docs/architectural-decision-records/) — ADR-0001 … ADR-0006 for OTP, sessions, KV, workers, email MVP, staging
+- **ADRs and feature plans:** [git lore](https://github.com/joshmcarthur/git-lore) — see [How to plan a feature](#how-to-plan-a-feature) (`refs/lore/architectural-decision-records`, ADR-0001 … ADR-0007)

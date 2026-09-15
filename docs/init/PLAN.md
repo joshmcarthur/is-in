@@ -83,7 +83,7 @@ anything@username.is-in.nz
 
 ### 4. Passwordless email authentication (MVP: numeric OTP)
 
-Authentication is handled via passwordless email login. For the **reserve-address MVP**, sign-in uses a **numeric one-time code** emailed to the user (see [ADR-0001](../architectural-decision-records/ADR-0001-otp-email-service.md)). Magic links remain a plausible later UX variant.
+Authentication is handled via passwordless email login. For the **reserve-address MVP**, sign-in uses a **numeric one-time code** emailed to the user (see **ADR-0001** in [git lore](https://github.com/joshmcarthur/git-lore#use-git-lore-in-your-project) / `refs/lore/architectural-decision-records`). Magic links remain a plausible later UX variant.
 
 ### Flow (MVP):
 1. User enters email
