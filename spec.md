@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Gate public sign-ups at 150 claimed sites with operator controls and public capacity visibility, per lore decisions.md (hosted-capacity Work).
+**Goal:** Gate public sign-ups at 150 claimed sites with operator controls and public capacity visibility, per ADR-0007 in refs/lore/architectural-decision-records.
 
 **Architecture:** Wrangler vars (`SIGNUPS_MODE`, `MAX_CLAIMED_SITES`) plus a KV counter (`platform:stats`) incremented on successful claim. Claim handler checks mode and cap before moderation/KV write. Optional read-only API exposes remaining slots for `/claim` scarcity copy. Forward-destination registry deferred to a follow-up task unless needed before launch.
 
