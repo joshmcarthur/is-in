@@ -106,7 +106,7 @@ flowchart LR
 ```
 
 - **Sign-up cap:** `MAX_CLAIMED_SITES` (optional integer). When set and `count(sites) >= cap`, claim returns `503` with `{ "error": "signups_closed" }`. UI shows a clear “full for now” message.
-- **Sign-up mode:** `SIGNUPS_MODE=open|closed` (default `open`). `closed` rejects all new claims regardless of count (maintenance / waitlist prep).
+- **Sign-up mode:** `SIGNUPS_ENABLED=true|false` (`true` (default when unset)). `closed` rejects all new claims regardless of count (maintenance / waitlist prep).
 - **Forward destination cap:** `MAX_UNIQUE_FORWARD_DESTINATIONS` (optional, default unset). Before accepting a new unique destination in `PATCH .../forwarding` or alias POST, check a platform registry; reject with `{ "error": "forward_capacity_full" }` when at cap. Hosted default: **150** (same envelope as sign-ups; leaves headroom under Cloudflare’s 200 verified-destination cap).
 - **Registry:** KV key `platform:forward_destinations` — JSON set of canonical destination emails in use, maintained on forward PATCH/alias write (add on new unique dest; remove when no site references it — best-effort when alias cleared).
 
@@ -141,7 +141,7 @@ flowchart LR
 
 | Control | Var | Effect |
 | -------- | --- | ------ |
-| Hard close | `SIGNUPS_MODE=closed` | All claims rejected |
+| Hard close | `SIGNUPS_ENABLED=false` | All claims rejected |
 | Numeric cap | `MAX_CLAIMED_SITES=N` | Reject when `claimedSites >= N` |
 | Forward cap | `MAX_UNIQUE_FORWARD_DESTINATIONS=M` | Block new unique forward targets (claims may still succeed) |
 | Existing | `SUBDOMAIN_MODERATION=on` | Name policy only; not a quantity limit |
@@ -152,7 +152,7 @@ flowchart LR
 | --- | --- | --- |
 | `MAX_CLAIMED_SITES` | **150** | Scarcity positioning; stays under Cloudflare’s 200 destination ceiling with headroom |
 | `MAX_UNIQUE_FORWARD_DESTINATIONS` | **150** | Same envelope; one forward target per user is the common case |
-| `SIGNUPS_MODE` | `open` until full | Flip to `closed` for maintenance without changing the cap |
+| `SIGNUPS_ENABLED` | `true` until full | Set to `false` for maintenance without changing the cap |
 
 **Workers Paid trigger:** at ~150 active hosted sites, enabling Workers Paid (~$5/mo) for `send_email` is justified — OTP to arbitrary sign-up addresses, and later outbound forwarding (Phase B) when native `message.forward()` limits bite. Treat Paid as the “hosted platform is real” threshold, not an emergency cost.
 
@@ -194,7 +194,7 @@ flowchart LR
 
 ## Validation
 
-- Unit tests: claim rejected when `SIGNUPS_MODE=closed` or at `MAX_CLAIMED_SITES`
+- Unit tests: claim rejected when `SIGNUPS_ENABLED=false` or at `MAX_CLAIMED_SITES`
 - Unit tests: forward PATCH rejected at `MAX_UNIQUE_FORWARD_DESTINATIONS`
 - Integration: staging native forward still works under cap
 - Integration: staging `outbound` delivers to unverified-in-routing address when Paid + sending enabled
