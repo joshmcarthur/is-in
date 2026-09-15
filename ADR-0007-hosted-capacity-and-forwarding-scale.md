@@ -106,7 +106,7 @@ flowchart LR
 ```
 
 - **Sign-up cap:** `MAX_CLAIMED_SITES` (optional integer). When set and `count(sites) >= cap`, claim returns `503` with `{ "error": "signups_closed" }`. UI shows a clear “full for now” message.
-- **Sign-up mode:** `SIGNUPS_ENABLED=true|false` (`true` (default when unset)). `closed` rejects all new claims regardless of count (maintenance / waitlist prep).
+- **Sign-up enabled:** `SIGNUPS_ENABLED=true|false` (default `true` when unset). `false` rejects all new claims regardless of count (maintenance / waitlist prep).
 - **Forward destination cap:** `MAX_UNIQUE_FORWARD_DESTINATIONS` (optional, default unset). Before accepting a new unique destination in `PATCH .../forwarding` or alias POST, check a platform registry; reject with `{ "error": "forward_capacity_full" }` when at cap. Hosted default: **150** (same envelope as sign-ups; leaves headroom under Cloudflare’s 200 verified-destination cap).
 - **Registry:** KV key `platform:forward_destinations` — JSON set of canonical destination emails in use, maintained on forward PATCH/alias write (add on new unique dest; remove when no site references it — best-effort when alias cleared).
 
