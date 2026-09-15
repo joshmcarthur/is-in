@@ -6,7 +6,7 @@ Ship Phase A hosted capacity controls: cohort-based sign-up limits (150 sites in
 
 ## Scope
 
-**In:** `MAX_CLAIMED_SITES`, `SIGNUPS_MODE`, KV `platform:stats` counter, claim gate, `GET /api/v1/platform/capacity`, home + claim copy.
+**In:** `MAX_CLAIMED_SITES`, `SIGNUPS_ENABLED`, KV `platform:stats` counter, claim gate, `GET /api/v1/platform/capacity`, home + claim copy.
 
 **Out (follow-ups):** forward-destination registry, `FORWARD_DELIVERY_MODE=outbound` (Phase B), site deletion / counter decrement.
 

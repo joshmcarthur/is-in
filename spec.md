@@ -4,13 +4,13 @@
 
 **Goal:** Gate public sign-ups at 150 claimed sites with operator controls and public capacity visibility, per ADR-0007 in refs/lore/architectural-decision-records.
 
-**Architecture:** Wrangler vars (`SIGNUPS_MODE`, `MAX_CLAIMED_SITES`) plus a KV counter (`platform:stats`) incremented on successful claim. Claim handler checks mode and cap before moderation/KV write. Optional read-only API exposes remaining slots for `/claim` scarcity copy. Forward-destination registry deferred to a follow-up task unless needed before launch.
+**Architecture:** Wrangler vars (`SIGNUPS_ENABLED`, `MAX_CLAIMED_SITES`) plus a KV counter (`platform:stats`) incremented on successful claim. Claim handler checks mode and cap before moderation/KV write. Optional read-only API exposes remaining slots for `/claim` scarcity copy. Forward-destination registry deferred to a follow-up task unless needed before launch.
 
 **Tech Stack:** TypeScript, Hono control plane (`apps/management`), `@is-in/shared` KV helpers, Vitest, Astro claim UI.
 
 ## Global Constraints
 
-- Hosted production defaults: `MAX_CLAIMED_SITES=150`, `SIGNUPS_MODE=open`
+- Hosted production defaults: `MAX_CLAIMED_SITES=150`, `SIGNUPS_ENABLED=true`
 - Self-host/forks: leave `MAX_CLAIMED_SITES` unset (unlimited)
 - Claim rejection: HTTP `503`, body `{ "error": "signups_closed" }`
 - Counter is monotonic (no site delete yet); do not decrement
@@ -113,7 +113,7 @@ Expected: PASS
 **Interfaces:**
 - Consumes: `platformStatsKey`, `parsePlatformStats`, `PlatformStats` from `@is-in/shared`
 - Produces:
-  - `parseSignupsMode(raw: string | undefined): "open" | "closed"`
+  - `parseSignupsEnabled(raw: string | undefined): boolean`
   - `parseMaxClaimedSites(raw: string | undefined): number | null`
   - `readClaimedSiteCount(kv): Promise<number>`
   - `incrementClaimedSiteCount(kv): Promise<number>` (returns new count)
@@ -124,8 +124,8 @@ Expected: PASS
 
 Cover:
 - `parseMaxClaimedSites("150") === 150`, invalid/empty → `null`
-- `parseSignupsMode("closed") === "closed"`, default → `"open"`
-- `signupsAcceptingClaims` false when mode closed or count >= cap
+- `parseSignupsEnabled("closed") === "closed"`, default → `"open"`
+- `signupsAcceptingClaims` false when sign-ups disabled or count >= cap
 - `incrementClaimedSiteCount` from 0 → 1, missing key → 1
 
 Use `createMemoryKv` from `@is-in/shared` in tests.
@@ -145,10 +145,10 @@ import {
 } from "@is-in/shared";
 import type { ManagementEnv } from "./env";
 
-export type SignupsMode = "open" | "closed";
+export type SignupsEnabled = boolean;
 
-export function parseSignupsMode(raw: string | undefined): SignupsMode {
-  return raw === "closed" ? "closed" : "open";
+export function parseSignupsEnabled(raw: string | undefined): SignupsEnabled {
+  return raw !== "false";
 }
 
 export function parseMaxClaimedSites(raw: string | undefined): number | null {
@@ -171,17 +171,17 @@ export async function incrementClaimedSiteCount(kv: KvStore): Promise<number> {
 }
 
 export function signupsAcceptingClaims(
-  env: Pick<ManagementEnv, "SIGNUPS_MODE" | "MAX_CLAIMED_SITES">,
+  env: Pick<ManagementEnv, "SIGNUPS_ENABLED" | "MAX_CLAIMED_SITES">,
   claimedSites: number,
 ): boolean {
-  if (parseSignupsMode(env.SIGNUPS_MODE) === "closed") return false;
+  if (parseSignupsEnabled(env.SIGNUPS_ENABLED) === "closed") return false;
   const cap = parseMaxClaimedSites(env.MAX_CLAIMED_SITES);
   if (cap === null) return true;
   return claimedSites < cap;
 }
 
 export async function getPublicCapacity(
-  env: Pick<ManagementEnv, "SIGNUPS_MODE" | "MAX_CLAIMED_SITES">,
+  env: Pick<ManagementEnv, "SIGNUPS_ENABLED" | "MAX_CLAIMED_SITES">,
   kv: KvStore,
 ) {
   const claimedSites = await readClaimedSiteCount(kv);
@@ -199,7 +199,7 @@ export async function getPublicCapacity(
 Add to `ManagementEnv`:
 
 ```typescript
-SIGNUPS_MODE?: string;
+SIGNUPS_ENABLED?: string;
 MAX_CLAIMED_SITES?: string;
 ```
 
@@ -227,7 +227,7 @@ Run: `pnpm --filter management test -- platformCapacity`
 
 ```typescript
 it("rejects claim when signups are closed", async () => {
-  test.env.SIGNUPS_MODE = "closed";
+  test.env.SIGNUPS_ENABLED = "closed";
   test.env.MAX_CLAIMED_SITES = "150";
   const sid = await signInViaOtp(test.env, TEST_EMAIL);
   const { status, body } = await callControlPlaneJson(["v1", "sites", "claim"], {
@@ -317,7 +317,7 @@ Run: `pnpm --filter management test -- sites.test`
 In `apps/management/wrangler.toml` `[vars]`:
 
 ```toml
-SIGNUPS_MODE = "open"
+SIGNUPS_ENABLED = "open"
 MAX_CLAIMED_SITES = "150"
 ```
 
@@ -330,7 +330,7 @@ Example file: document vars with comment that forks should omit `MAX_CLAIMED_SIT
 In hosted vs self-host table and a short “Capacity” subsection:
 
 - 150 sign-up slots on hosted `is-in.nz`
-- `SIGNUPS_MODE=closed` to pause
+- `SIGNUPS_ENABLED=false` to pause
 - Workers Paid (~$5/mo) expected at full hosted scale for OTP + future outbound forward
 - Link ADR-0007
 
@@ -352,7 +352,7 @@ In hosted vs self-host table and a short “Capacity” subsection:
 | --------- | ---- |
 | Open | `{remaining} places left in this cohort.` |
 | Full (cohort cap reached) | `This cohort is full. The next isn't open yet.` |
-| Paused (`SIGNUPS_MODE=closed`) | `Sign-ups are paused at the moment.` |
+| Paused (`SIGNUPS_ENABLED=false`) | `Sign-ups are paused at the moment.` |
 
 Full/paused: disable form; add `Already have a name? Sign in.` (link). Optional muted link to GitHub README for self-host.
 
@@ -418,7 +418,7 @@ Run `pnpm dev:management:pages` — home shows cohort policy copy (no number); `
 | ADR-0007 requirement | Task |
 | -------------------- | ---- |
 | `MAX_CLAIMED_SITES=150` | Task 2–4 |
-| `SIGNUPS_MODE` | Task 2–4 |
+| `SIGNUPS_ENABLED` | Task 2–4 |
 | Claim gate + `signups_closed` | Task 3 |
 | Public UI copy | Task 5 |
 | Self-host unlimited (unset cap) | Task 2 parseMax → null |
