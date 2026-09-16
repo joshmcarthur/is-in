@@ -2,6 +2,13 @@ import { canonicalEmail } from "./email.js";
 import { RESERVED_SUBDOMAINS } from "./reserved.js";
 
 export { canonicalEmail } from "./email.js";
+export type { OperatorGrant, SignupsState } from "./featureFlags.js";
+export {
+  deriveSignupsState,
+  hasOperatorGrant,
+  parseFeatureEnabled,
+  parseOperatorGrants,
+} from "./featureFlags.js";
 export type { CloudflareKvBinding, KvPutOptions, KvStore } from "./kv-store.js";
 export { createMemoryKv, wrapCloudflareKv } from "./kv-store.js";
 export { parseSiteFromEmailAddress, parseSiteHost } from "./parse-site-host.js";

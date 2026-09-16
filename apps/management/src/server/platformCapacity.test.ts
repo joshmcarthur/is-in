@@ -1,5 +1,6 @@
 import { createMemoryKv } from "@is-in/shared";
 import { describe, expect, it } from "vitest";
+import type { ManagementEnv } from "./env.js";
 import {
   getPublicCapacity,
   incrementClaimedSiteCount,
@@ -8,6 +9,17 @@ import {
   readClaimedSiteCount,
   signupsAcceptingClaims,
 } from "./platformCapacity.js";
+
+function env(overrides: Partial<ManagementEnv> = {}): ManagementEnv {
+  return {
+    KV: {} as ManagementEnv["KV"],
+    SESSION_SECRET: "test-secret",
+    ROOT_DOMAIN: "is-in.nz",
+    OTP_FROM: "noreply@is-in.nz",
+    OTP_SUBJECT: "code",
+    ...overrides,
+  };
+}
 
 describe("parseSignupsEnabled", () => {
   it("defaults to enabled", () => {
@@ -38,28 +50,42 @@ describe("parseMaxClaimedSites", () => {
 
 describe("signupsAcceptingClaims", () => {
   it("allows claims when enabled and under cap", () => {
-    expect(signupsAcceptingClaims({ SIGNUPS_ENABLED: "true", MAX_CLAIMED_SITES: "150" }, 0)).toBe(
-      true,
-    );
-    expect(signupsAcceptingClaims({ SIGNUPS_ENABLED: "true", MAX_CLAIMED_SITES: "150" }, 149)).toBe(
-      true,
-    );
+    expect(
+      signupsAcceptingClaims(env({ SIGNUPS_ENABLED: "true", MAX_CLAIMED_SITES: "150" }), 0),
+    ).toBe(true);
+    expect(
+      signupsAcceptingClaims(env({ SIGNUPS_ENABLED: "true", MAX_CLAIMED_SITES: "150" }), 149),
+    ).toBe(true);
   });
 
   it("rejects when sign-ups are disabled", () => {
-    expect(signupsAcceptingClaims({ SIGNUPS_ENABLED: "false", MAX_CLAIMED_SITES: "150" }, 0)).toBe(
-      false,
-    );
+    expect(
+      signupsAcceptingClaims(env({ SIGNUPS_ENABLED: "false", MAX_CLAIMED_SITES: "150" }), 0),
+    ).toBe(false);
   });
 
   it("rejects when at cap", () => {
-    expect(signupsAcceptingClaims({ SIGNUPS_ENABLED: "true", MAX_CLAIMED_SITES: "150" }, 150)).toBe(
-      false,
-    );
+    expect(
+      signupsAcceptingClaims(env({ SIGNUPS_ENABLED: "true", MAX_CLAIMED_SITES: "150" }), 150),
+    ).toBe(false);
   });
 
   it("allows unlimited claims when cap is unset", () => {
-    expect(signupsAcceptingClaims({ SIGNUPS_ENABLED: "true" }, 999)).toBe(true);
+    expect(signupsAcceptingClaims(env({ SIGNUPS_ENABLED: "true" }), 999)).toBe(true);
+  });
+
+  it("allows grant bypass when sign-ups are disabled", () => {
+    expect(
+      signupsAcceptingClaims(
+        env({
+          SIGNUPS_ENABLED: "false",
+          MAX_CLAIMED_SITES: "150",
+          OPERATOR_GRANTS: "ops@example.com:signups",
+        }),
+        0,
+        "ops@example.com",
+      ),
+    ).toBe(true);
   });
 });
 
@@ -80,6 +106,7 @@ describe("getPublicCapacity", () => {
     expect(cap).toEqual({
       signupsOpen: true,
       signupsDisabled: false,
+      signupsState: "open",
       maxClaimedSites: 150,
       claimedSites: 1,
       remaining: 149,

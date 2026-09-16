@@ -112,6 +112,20 @@ Saving a destination in the dashboard writes a catch-all entry at `emailAliases[
 
 **Hosted capacity:** first cohort capped at **150** claimed sites (`MAX_CLAIMED_SITES`). Set `SIGNUPS_ENABLED=false` in [`apps/management/wrangler.toml`](apps/management/wrangler.toml) to disable new claims without redeploying code. Self-host forks can omit `MAX_CLAIMED_SITES` for unlimited sign-ups. See ADR-0007 in [lore](#how-to-plan-a-feature).
 
+**Operator kill switches** (Wrangler vars, default enabled when unset):
+
+| Var | Worker | Effect | Grant to bypass |
+|-----|--------|--------|-----------------|
+| `MANAGEMENT_ENABLED` | management | Lock control plane | `management` |
+| `OTP_ENABLED` | management | Block OTP sign-in | `otp` |
+| `SIGNUPS_ENABLED` | management | Pause new claims | `signups` |
+| `WEB_CONFIG_ENABLED` | management | Block web link/forward edits | `web_config` |
+| `EMAIL_CONFIG_ENABLED` | management | Block email alias/forward edits | `email_config` |
+| `INBOUND_EMAIL_ENABLED` | email-inbound | Drop inbound mail | — |
+| `WEB_REDIRECTS_ENABLED` | public-site | Stop HTTP redirects | — |
+
+Set `OPERATOR_GRANTS="you@example.com:management,otp;backup@example.com:all"` (semicolon-separated `email:grant` entries) so named operators can bypass management flags during an incident. `SUBDOMAIN_MODERATION=off` disables AI moderation without a separate flag.
+
 Self-host checklist:
 
 1. Fork this repo (GPL-3.0).

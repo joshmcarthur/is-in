@@ -1,8 +1,9 @@
 import type { ManagementEnv } from "../env";
+import { assertFeatureAccess, isManagementRouteExempt } from "../featureAccess";
 import { postOtpStart, postOtpVerify } from "../handlers/auth";
 import { postAvailability } from "../handlers/availability";
 import { getHealth } from "../handlers/health";
-import { getPlatformCapacity } from "../handlers/platform";
+import { getPlatformCapacity, getPlatformStatus } from "../handlers/platform";
 import { deleteSession, getSessionMe } from "../handlers/session";
 import {
   deleteSiteAlias,
@@ -15,6 +16,9 @@ import {
 } from "../handlers/sites";
 import type { ControlPlaneHandler } from "../handlers/types";
 import { json, jsonNotFound } from "../http";
+import { readSession } from "../session";
+
+const OTP_ROUTES = new Set(["/api/v1/auth/otp/start", "/api/v1/auth/otp/verify"]);
 
 type Route = {
   method: string;
@@ -29,6 +33,12 @@ const routes: Route[] = [
     method: "GET",
     pathname: "/api/v1/platform/capacity",
     handle: getPlatformCapacity,
+    requireSecret: false,
+  },
+  {
+    method: "GET",
+    pathname: "/api/v1/platform/status",
+    handle: getPlatformStatus,
     requireSecret: false,
   },
   { method: "POST", pathname: "/api/v1/availability", handle: postAvailability },
@@ -63,12 +73,25 @@ function apiSegments(request: Request): string[] {
 
 /** Dispatch `/api/*` to a control-plane handler. */
 export async function routeApi(request: Request, env: ManagementEnv): Promise<Response> {
+  const pathname = new URL(request.url).pathname;
+
   for (const route of compiled) {
     if (request.method !== route.method) continue;
     if (!route.pattern.exec(request.url)) continue;
     if (route.requireSecret !== false && !env.SESSION_SECRET) {
       return json({ error: "server_misconfigured" }, 500);
     }
+
+    if (!isManagementRouteExempt(pathname, request.method) && !OTP_ROUTES.has(pathname)) {
+      const session = await readSession(request, env);
+      const blocked = assertFeatureAccess(
+        env,
+        "management",
+        session ? { email: session.email } : undefined,
+      );
+      if (blocked) return blocked;
+    }
+
     return route.handle(request, env, apiSegments(request));
   }
   return jsonNotFound();

@@ -25,6 +25,7 @@ function mockMessage(to: string) {
 describe("email-inbound worker", () => {
   afterEach(async () => {
     await reset();
+    delete env.INBOUND_EMAIL_ENABLED;
   });
 
   it("forwards to all configured destinations", async () => {
@@ -45,11 +46,9 @@ describe("email-inbound worker", () => {
     expect(forwarded).toEqual([]);
   });
 
-  it("drops mail when alias is missing", async () => {
-    await env.KV.put(
-      siteKey("demo"),
-      JSON.stringify(createEmptySiteRecord("owner@example.com", "2025-01-01T00:00:00.000Z")),
-    );
+  it("drops mail when inbound email is disabled", async () => {
+    await env.KV.put(siteKey("demo"), JSON.stringify(siteWithAliases(["one@example.com"])));
+    env.INBOUND_EMAIL_ENABLED = "false";
     const { message, forwarded } = mockMessage("anything@demo.is-in.nz");
     const ctx = createExecutionContext();
     await worker.email(message, env, ctx);

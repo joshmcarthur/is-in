@@ -15,6 +15,7 @@ const contactUrl = "https://github.com/joshmcarthur/is-in/issues";
       <button type="button" class="btn-link sign-out">Sign out</button>
     </div>
     <p class="muted">Your place on the NZ internet.</p>
+    <p id="maintenance" class="status" role="status" hidden></p>
 
     <div class="stack" role="navigation" aria-label="Account">
       <article class="feature-card" id="your-page">
@@ -109,15 +110,23 @@ const contactUrl = "https://github.com/joshmcarthur/is-in/issues";
 
   <script>
     import { apiBase } from "../client/apiBase";
+    import { fetchPlatformStatus, managementUnavailableCopy } from "../client/platformStatus";
     import { requireSessionAndSite } from "../client/requireSessionAndSite";
     import { ROOT_DOMAIN } from "../siteDomain";
 
     const siteHost = document.getElementById("site-host");
     const aliasesDesc = document.getElementById("aliases-desc");
     const viewPage = document.getElementById("view-page");
+    const maintenance = document.getElementById("maintenance");
     const signOutBtns = document.querySelectorAll<HTMLButtonElement>(".sign-out");
 
     async function load() {
+      const status = await fetchPlatformStatus(apiBase);
+      const copy = managementUnavailableCopy(status);
+      if (copy && maintenance) {
+        maintenance.hidden = false;
+        maintenance.textContent = copy;
+      }
       try {
         const { site } = await requireSessionAndSite();
         const host = `${site.subdomain}.${ROOT_DOMAIN}`;

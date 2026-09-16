@@ -137,6 +137,18 @@ describe("otp", () => {
     expect(sessionCookie(verifyRes)).toBeDefined();
   });
 
+  it("returns auth_disabled when OTP is disabled", async () => {
+    test.env.OTP_ENABLED = "false";
+    const { status, body } = await callControlPlaneJson(["v1", "auth", "otp", "start"], {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: TEST_EMAIL }),
+      env: test.env,
+    });
+    expect(status).toBe(503);
+    expect(body).toEqual({ error: "auth_disabled" });
+  });
+
   it("does not send OTP to non-allowlisted addresses in operator mode", async () => {
     const env = {
       ...test.env,

@@ -4,6 +4,7 @@ interface __BaseEnv_Env {
 	KV: KVNamespace;
 	ROOT_DOMAIN: "test.is-in.nz" | "is-in.nz";
 	PRODUCT_NAME: "is-in.nz";
+	WEB_REDIRECTS_ENABLED?: string;
 }
 declare namespace Cloudflare {
 	interface GlobalProps {

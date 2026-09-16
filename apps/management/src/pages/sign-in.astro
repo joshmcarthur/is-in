@@ -8,6 +8,7 @@ import Layout from "../layouts/Layout.astro";
   <div class="stack">
     <h2 class="h2">Sign in</h2>
     <p class="lede" id="lede">We'll email you a code.</p>
+    <p id="unavailable" class="status" role="status" hidden></p>
     <form id="form" class="stack" novalidate>
       <div class="input-suffix">
         <input
@@ -27,6 +28,11 @@ import Layout from "../layouts/Layout.astro";
   <script>
     import { apiBase } from "../client/apiBase";
     import { requiredElement } from "../client/dom";
+    import {
+      fetchPlatformStatus,
+      managementUnavailableCopy,
+      otpUnavailableCopy,
+    } from "../client/platformStatus";
     import { ROOT_DOMAIN } from "../siteDomain";
 
     const pendingSub = sessionStorage.getItem("isin_pending_subdomain");
@@ -39,8 +45,22 @@ import Layout from "../layouts/Layout.astro";
 
     const form = requiredElement<HTMLFormElement>("form");
     const msg = requiredElement("msg");
+    const unavailable = requiredElement("unavailable");
     const submitBtn = requiredElement<HTMLButtonElement>("submit");
     const emailInput = requiredElement<HTMLInputElement>("email");
+
+    function applyUnavailable(copy: string | null) {
+      if (!copy) return;
+      unavailable.hidden = false;
+      unavailable.textContent = copy;
+      form.hidden = true;
+    }
+
+    (async () => {
+      const status = await fetchPlatformStatus(apiBase);
+      applyUnavailable(managementUnavailableCopy(status));
+      applyUnavailable(otpUnavailableCopy(status));
+    })();
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -57,7 +77,12 @@ import Layout from "../layouts/Layout.astro";
       });
       if (!res.ok) {
         msg.hidden = false;
-        msg.textContent = "Something went wrong. Try again.";
+        const data = await res.json().catch(() => ({})) as { error?: string };
+        if (data.error === "auth_disabled") {
+          msg.textContent = "Sign-in is temporarily unavailable.";
+        } else {
+          msg.textContent = "Something went wrong. Try again.";
+        }
         msg.className = "status status--error";
         submitBtn.disabled = false;
         submitBtn.textContent = "Email me a code";

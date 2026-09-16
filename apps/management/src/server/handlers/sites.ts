@@ -18,6 +18,7 @@ import {
   type UserRecord,
   userKey,
 } from "@is-in/shared";
+import { assertFeatureAccess } from "../featureAccess";
 import { json } from "../http";
 import { moderateSubdomain } from "../moderation/subdomain";
 import { productName } from "../operatorConfig";
@@ -133,7 +134,7 @@ export const postSitesClaim: ControlPlaneHandler = async (request, env) => {
   }
 
   const claimedSites = await readClaimedSiteCount(store);
-  if (!signupsAcceptingClaims(env, claimedSites)) {
+  if (!signupsAcceptingClaims(env, claimedSites, s.email)) {
     return json({ error: "signups_closed" }, 503);
   }
 
@@ -176,6 +177,8 @@ export const patchSiteForwarding: ControlPlaneHandler = async (request, env, seg
   }
 
   if ("webForwardUrl" in body) {
+    const blocked = assertFeatureAccess(env, "web_config", { email: loaded.site.ownerEmail });
+    if (blocked) return blocked;
     if (body.webForwardUrl === null || body.webForwardUrl === "") {
       delete site.webForwards[CATCH_ALL_KEY];
     } else if (typeof body.webForwardUrl === "string" && isSafeForwardUrl(body.webForwardUrl)) {
@@ -185,6 +188,8 @@ export const patchSiteForwarding: ControlPlaneHandler = async (request, env, seg
     }
   }
   if ("emailForwardDest" in body) {
+    const blocked = assertFeatureAccess(env, "email_config", { email: loaded.site.ownerEmail });
+    if (blocked) return blocked;
     if (body.emailForwardDest === null || body.emailForwardDest === "") {
       delete site.emailAliases[CATCH_ALL_KEY];
     } else if (
@@ -210,6 +215,8 @@ export const postSiteLink: ControlPlaneHandler = async (request, env, segments) 
   const loaded = await loadOwnedSite(request, env, subdomain);
   if (!loaded.ok) return loaded.response;
   const site = loaded.site;
+  const blocked = assertFeatureAccess(env, "web_config", { email: site.ownerEmail });
+  if (blocked) return blocked;
 
   let body: {
     path?: string;
@@ -257,6 +264,8 @@ export const deleteSiteLink: ControlPlaneHandler = async (request, env, segments
   const loaded = await loadOwnedSite(request, env, subdomain);
   if (!loaded.ok) return loaded.response;
   const site = loaded.site;
+  const blocked = assertFeatureAccess(env, "web_config", { email: site.ownerEmail });
+  if (blocked) return blocked;
 
   const pathKey = normalizeWebPath(segments.slice(4).join("/"));
   if (!pathKey || pathKey === CATCH_ALL_KEY || !isValidWebPathKey(pathKey)) {
@@ -278,6 +287,8 @@ export const postSiteAlias: ControlPlaneHandler = async (request, env, segments)
   const loaded = await loadOwnedSite(request, env, subdomain);
   if (!loaded.ok) return loaded.response;
   const site = loaded.site;
+  const blocked = assertFeatureAccess(env, "email_config", { email: site.ownerEmail });
+  if (blocked) return blocked;
 
   let body: { local?: string; destinations?: string[] };
   try {
@@ -321,6 +332,8 @@ export const deleteSiteAlias: ControlPlaneHandler = async (request, env, segment
   const loaded = await loadOwnedSite(request, env, subdomain);
   if (!loaded.ok) return loaded.response;
   const site = loaded.site;
+  const blocked = assertFeatureAccess(env, "email_config", { email: site.ownerEmail });
+  if (blocked) return blocked;
 
   const localKey = normalizeEmailLocal(decodeURIComponent(segments[4] ?? ""));
   if (!localKey || localKey === CATCH_ALL_KEY || !isValidEmailLocalKey(localKey)) {

@@ -14,6 +14,7 @@ preview_id = "2d733b8ee95746f6bdd3693ef2de6b7d"
 [vars]
 ROOT_DOMAIN = "is-in.nz"
 PRODUCT_NAME = "is-in.nz"
+WEB_REDIRECTS_ENABLED = "true"
 
 [env.staging]
 name = "is-in-public-site-staging"
@@ -26,6 +27,7 @@ preview_id = "f6d6ae7d37e44bb987df340aaebdd17b"
 [env.staging.vars]
 ROOT_DOMAIN = "test.is-in.nz"
 PRODUCT_NAME = "is-in.nz"
+WEB_REDIRECTS_ENABLED = "true"
 
 [[env.staging.routes]]
 pattern = "*.test.is-in.nz/*"
