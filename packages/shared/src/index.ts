@@ -6,6 +6,8 @@ export type { CloudflareKvBinding, KvPutOptions, KvStore } from "./kv-store.js";
 export { createMemoryKv, wrapCloudflareKv } from "./kv-store.js";
 export { parseSiteFromEmailAddress, parseSiteHost } from "./parse-site-host.js";
 export { parseSiteRecord } from "./parse-site-record.js";
+export type { PlatformStats } from "./platform.js";
+export { parsePlatformStats, platformStatsKey } from "./platform.js";
 export { RESERVED_SUBDOMAINS } from "./reserved.js";
 
 export function siteKey(subdomain: string): string {

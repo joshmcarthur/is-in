@@ -2,6 +2,7 @@ import type { ManagementEnv } from "../env";
 import { postOtpStart, postOtpVerify } from "../handlers/auth";
 import { postAvailability } from "../handlers/availability";
 import { getHealth } from "../handlers/health";
+import { getPlatformCapacity } from "../handlers/platform";
 import { deleteSession, getSessionMe } from "../handlers/session";
 import {
   deleteSiteAlias,
@@ -24,6 +25,12 @@ type Route = {
 
 const routes: Route[] = [
   { method: "GET", pathname: "/api/health", handle: getHealth, requireSecret: false },
+  {
+    method: "GET",
+    pathname: "/api/v1/platform/capacity",
+    handle: getPlatformCapacity,
+    requireSecret: false,
+  },
   { method: "POST", pathname: "/api/v1/availability", handle: postAvailability },
   { method: "POST", pathname: "/api/v1/auth/otp/start", handle: postOtpStart },
   { method: "POST", pathname: "/api/v1/auth/otp/verify", handle: postOtpVerify },

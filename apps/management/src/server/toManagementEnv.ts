@@ -16,6 +16,8 @@ export function toManagementEnv(cf: Cloudflare.Env): ManagementEnv {
     AUTH_MODE: cf.AUTH_MODE,
     OTP_ALLOWLIST: cf.OTP_ALLOWLIST,
     SUBDOMAIN_MODERATION: cf.SUBDOMAIN_MODERATION,
+    SIGNUPS_ENABLED: cf.SIGNUPS_ENABLED,
+    MAX_CLAIMED_SITES: cf.MAX_CLAIMED_SITES,
     ASSETS: cf.ASSETS,
   };
 }

@@ -21,6 +21,11 @@ import {
 import { json } from "../http";
 import { moderateSubdomain } from "../moderation/subdomain";
 import { productName } from "../operatorConfig";
+import {
+  incrementClaimedSiteCount,
+  readClaimedSiteCount,
+  signupsAcceptingClaims,
+} from "../platformCapacity";
 import { readSession } from "../session";
 import { isSafeForwardUrl, isValidDestinationEmail } from "../validate";
 import type { ControlPlaneHandler } from "./types";
@@ -127,6 +132,11 @@ export const postSitesClaim: ControlPlaneHandler = async (request, env) => {
     return json({ error: "taken" }, 409);
   }
 
+  const claimedSites = await readClaimedSiteCount(store);
+  if (!signupsAcceptingClaims(env, claimedSites)) {
+    return json({ error: "signups_closed" }, 503);
+  }
+
   if (env.SUBDOMAIN_MODERATION === "on") {
     if (!env.AI) return json({ error: "server_misconfigured" }, 500);
     const mod = await moderateSubdomain(env.AI, subdomain, productName(env));
@@ -144,6 +154,8 @@ export const postSitesClaim: ControlPlaneHandler = async (request, env) => {
 
   const userRec = mergeUserSites(existingUser, subdomain);
   await store.put(uk, JSON.stringify(userRec));
+
+  await incrementClaimedSiteCount(store);
 
   return json({ ok: true, site });
 };

@@ -110,6 +110,8 @@ Saving a destination in the dashboard writes a catch-all entry at `emailAliases[
 | **Self-host** | Set `AUTH_MODE=operator` and `OTP_ALLOWLIST` to verified inboxes only (free on all plans) | `SUBDOMAIN_MODERATION=off` | Your domain, household, club |
 | **Hosted is-in.nz** | `AUTH_MODE=public` (requires **Workers Paid** for arbitrary OTP recipients) | `SUBDOMAIN_MODERATION=on` | Public sign-up on `is-in.nz` |
 
+**Hosted capacity:** first cohort capped at **150** claimed sites (`MAX_CLAIMED_SITES`). Set `SIGNUPS_ENABLED=false` in [`apps/management/wrangler.toml`](apps/management/wrangler.toml) to disable new claims without redeploying code. Self-host forks can omit `MAX_CLAIMED_SITES` for unlimited sign-ups. See ADR-0007 in [lore](#how-to-plan-a-feature).
+
 Self-host checklist:
 
 1. Fork this repo (GPL-3.0).

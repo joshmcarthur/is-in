@@ -22,6 +22,9 @@ import { ROOT_DOMAIN } from "../siteDomain";
         />
         <span class="suffix" aria-hidden="true">.{ROOT_DOMAIN}</span>
       </div>
+      <p id="capacity" class="muted" hidden></p>
+      <p id="closed" class="status" role="status" hidden></p>
+      <p id="sign-in-link" hidden>Already have a name? <a href="/sign-in">Sign in</a>.</p>
       <p id="avail" class="status" role="status" aria-live="polite"></p>
       <button type="submit" class="btn btn-primary" id="continue" disabled>Continue</button>
       <p id="guest-hint" class="lede" hidden></p>
@@ -34,6 +37,55 @@ import { ROOT_DOMAIN } from "../siteDomain";
     import { ROOT_DOMAIN } from "../siteDomain";
 
     const PENDING_SUB_KEY = "isin_pending_subdomain";
+
+    type CapacityState = {
+      signupsOpen?: boolean;
+      signupsDisabled?: boolean;
+      remaining?: number | null;
+    };
+
+    function formatCapacityLine(cap: CapacityState): string {
+      if (cap.signupsDisabled) {
+        return "Sign-ups are paused at the moment.";
+      }
+      if (cap.signupsOpen && cap.remaining !== null && cap.remaining !== undefined) {
+        return `${cap.remaining} places left in this cohort.`;
+      }
+      return "This cohort is full. The next isn't open yet.";
+    }
+
+    function applyCapacityState(cap: CapacityState | null) {
+      const capacityEl = document.getElementById("capacity");
+      const closedEl = document.getElementById("closed");
+      const signInLink = document.getElementById("sign-in-link");
+      if (!capacityEl || !closedEl || !signInLink) return;
+
+      if (!cap || cap.signupsOpen) {
+        closedEl.hidden = true;
+        signInLink.hidden = true;
+        subdomainInput.disabled = false;
+        if (cap?.signupsOpen && cap.remaining !== null && cap.remaining !== undefined) {
+          capacityEl.textContent = formatCapacityLine(cap);
+          capacityEl.hidden = false;
+        } else {
+          capacityEl.hidden = true;
+        }
+        return;
+      }
+
+      capacityEl.hidden = true;
+      closedEl.hidden = false;
+      closedEl.textContent = formatCapacityLine(cap);
+      closedEl.className = "status";
+      signInLink.hidden = false;
+      subdomainInput.disabled = true;
+      continueBtn.disabled = true;
+      lastAvailableSubdomain = "";
+      updateContinueLabel();
+      updateGuestHint();
+    }
+
+    let capacityState: CapacityState | null = null;
 
     async function me() {
       const res = await fetch(`${apiBase}/api/v1/session/me`, { credentials: "include" });
@@ -90,7 +142,9 @@ import { ROOT_DOMAIN } from "../siteDomain";
     function setAvailSuccess(subdomain: string) {
       avail.textContent = `✓ ${subdomain}.${ROOT_DOMAIN} is available!`;
       avail.className = "status status--success";
-      continueBtn.disabled = false;
+      if (!subdomainInput.disabled) {
+        continueBtn.disabled = false;
+      }
       lastAvailableSubdomain = subdomain;
       updateContinueLabel();
       updateGuestHint();
@@ -155,6 +209,12 @@ import { ROOT_DOMAIN } from "../siteDomain";
     }
 
     (async () => {
+      const capRes = await fetch(`${apiBase}/api/v1/platform/capacity`);
+      if (capRes.ok) {
+        capacityState = await readJson<CapacityState>(capRes);
+        applyCapacityState(capacityState);
+      }
+
       const u = await me();
       authenticated = !!(u && u.authenticated);
       if (authenticated && (await hasSite())) {
@@ -205,6 +265,8 @@ import { ROOT_DOMAIN } from "../siteDomain";
           msg.textContent = "Couldn't verify that name right now. Try again.";
         } else if (data.error === "taken") {
           msg.textContent = "That name is taken.";
+        } else if (data.error === "signups_closed") {
+          msg.textContent = formatCapacityLine(capacityState ?? {});
         } else {
           msg.textContent = data.error || "Could not reserve.";
         }
