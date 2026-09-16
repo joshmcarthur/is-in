@@ -14,7 +14,7 @@ const contactUrl = "https://github.com/joshmcarthur/is-in/issues";
       <h1 class="title site-host font-mono" id="site-host"></h1>
       <button type="button" class="btn-link sign-out">Sign out</button>
     </div>
-    <p class="muted">Your address on the New Zealand internet.</p>
+    <p class="muted">Your place on the NZ internet.</p>
 
     <div class="stack" role="navigation" aria-label="Account">
       <article class="feature-card" id="your-page">
@@ -26,7 +26,7 @@ const contactUrl = "https://github.com/joshmcarthur/is-in/issues";
         </span>
         <div class="feature-card__body">
           <h2 class="feature-card__title">Your page</h2>
-          <p class="feature-card__desc muted">View your public page</p>
+          <p class="feature-card__desc muted">Your public profile page</p>
           <p class="feature-card__note">Coming later</p>
         </div>
         <div class="feature-card__actions">
@@ -43,7 +43,7 @@ const contactUrl = "https://github.com/joshmcarthur/is-in/issues";
         </span>
         <div class="feature-card__body">
           <h2 class="feature-card__title">Email aliases</h2>
-          <p class="feature-card__desc muted" id="aliases-desc">Create @yourname.{ROOT_DOMAIN} addresses</p>
+          <p class="feature-card__desc muted" id="aliases-desc">Email addresses at @yourname.{ROOT_DOMAIN}</p>
           <p class="feature-card__note">Coming later</p>
         </div>
       </article>
@@ -57,7 +57,7 @@ const contactUrl = "https://github.com/joshmcarthur/is-in/issues";
         </span>
         <div class="feature-card__body">
           <h2 class="feature-card__title">Short URLs</h2>
-          <p class="feature-card__desc muted">Create short, easy to share links</p>
+          <p class="feature-card__desc muted">Short links you can share and repoint</p>
           <p class="feature-card__note">Coming later</p>
         </div>
       </article>
@@ -71,7 +71,7 @@ const contactUrl = "https://github.com/joshmcarthur/is-in/issues";
         </span>
         <div class="feature-card__body">
           <h2 class="feature-card__title">Web forwarding</h2>
-          <p class="feature-card__desc muted">Send visitors to another website</p>
+          <p class="feature-card__desc muted">Send visitors to another site</p>
         </div>
         <div class="feature-card__actions">
           <a class="feature-card__action" href="/forwarding">Manage</a>
@@ -89,7 +89,7 @@ const contactUrl = "https://github.com/joshmcarthur/is-in/issues";
         </span>
         <div class="feature-card__body">
           <h2 class="feature-card__title">Email forwarding</h2>
-          <p class="feature-card__desc muted">Forward incoming emails to another address</p>
+          <p class="feature-card__desc muted">Forward mail to your inbox</p>
         </div>
         <div class="feature-card__actions">
           <a class="feature-card__action" href="/email">Manage</a>
@@ -122,7 +122,7 @@ const contactUrl = "https://github.com/joshmcarthur/is-in/issues";
         const { site } = await requireSessionAndSite();
         const host = `${site.subdomain}.${ROOT_DOMAIN}`;
         if (siteHost) siteHost.textContent = host;
-        if (aliasesDesc) aliasesDesc.textContent = `Create @${host} addresses`;
+        if (aliasesDesc) aliasesDesc.textContent = `Email addresses at @${host}`;
         if (viewPage instanceof HTMLAnchorElement) viewPage.href = `https://${host}`;
       } catch {
         return;

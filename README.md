@@ -2,13 +2,13 @@
 
 Licensed under [GPL-3.0](LICENSE).
 
-A single hostname that stays yours: a profile strangers can open, short links you can change when the destination moves, and addresses at `something@username.is-in.nz` that land in inboxes you already use. That bundle is the whole product idea — no generic website hosting, no social feed, just a small set of behaviours you configure once and keep.
+A single hostname on the NZ internet that stays yours: a profile page, short links you can repoint, and mail at `something@username.is-in.nz` forwarded to an inbox you already use. That's the whole product — no generic website hosting, no social feed.
 
-We keep the HTML and routing boring on purpose so the interesting part is what you bring: typography and layout through CSS, where your short links point, and who receives mail for your subdomain. Delivery stays edge-close ([Cloudflare Workers](https://developers.cloudflare.com/workers/) with KV) so the thing you operate stays small.
+You choose where links go, how the page looks, and who gets mail for your name. We keep the HTML and routing boring on purpose so those choices are what matter. Delivery stays edge-close ([Cloudflare Workers](https://developers.cloudflare.com/workers/) with KV) so the platform stays small.
 
 ## Values
 
-- **Longevity over novelty.** Prefer plain, dependable building blocks that stay affordable to run and trustworthy year on year—technology and habits you can imagine keeping up for decades, not just until the next stack fashion cycle.
+- **Longevity over novelty.** Plain, dependable building blocks that stay affordable to run and trustworthy year on year — technology you can imagine keeping up for the long term.
 - **Creative room, bounded risk.** Give people meaningful sway (especially how a page reads and where links land) inside structures that keep visitors safe from arbitrary scripts and opaque bundles.
 - **Respect for attention.** Small number of sharp surfaces, quick setup, low cognitive load—running a subdomain should not feel like a second job.
 - **Honest scope.** Say no to whole categories (generic hosting, social graphs, deep org tooling) rather than half-ship them and let them quietly rot.
