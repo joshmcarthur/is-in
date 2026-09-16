@@ -15,5 +15,7 @@ export interface ManagementEnv {
   OTP_ALLOWLIST?: string;
   /** Set to `"on"` to enable Workers AI subdomain moderation. Default off for forks. */
   SUBDOMAIN_MODERATION?: string;
+  SIGNUPS_ENABLED?: string;
+  MAX_CLAIMED_SITES?: string;
   ASSETS?: Fetcher;
 }

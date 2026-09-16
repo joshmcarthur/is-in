@@ -28,6 +28,8 @@ OTP_SUBJECT = "Your sign-in code"
 AUTH_MODE = "operator"
 OTP_ALLOWLIST = "you@example.com"
 SUBDOMAIN_MODERATION = "off"
+# Hosted public sign-up: SIGNUPS_ENABLED = "true", MAX_CLAIMED_SITES = "150"
+# Self-host: omit MAX_CLAIMED_SITES (unlimited); set SIGNUPS_ENABLED = "false" to pause claims
 
 [[send_email]]
 name = "EMAIL"

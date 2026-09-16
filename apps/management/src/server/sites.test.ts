@@ -2,6 +2,8 @@ import {
   CATCH_ALL_KEY,
   canonicalEmail,
   createEmptySiteRecord,
+  parsePlatformStats,
+  platformStatsKey,
   type SiteRecord,
   siteKey,
   type UserRecord,
@@ -50,6 +52,66 @@ describe("sites", () => {
     });
     expect(me?.sites).toHaveLength(1);
     expect(me?.sites[0]?.subdomain).toBe(TEST_SUB);
+  });
+
+  it("rejects claim when sign-ups are disabled", async () => {
+    test.env.SIGNUPS_ENABLED = "false";
+    test.env.MAX_CLAIMED_SITES = "150";
+    const sid = await signInViaOtp(test.env, TEST_EMAIL);
+    const { status, body } = await callControlPlaneJson(["v1", "sites", "claim"], {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ subdomain: "newsite" }),
+      env: test.env,
+      ...withSessionCookie(sid),
+    });
+    expect(status).toBe(503);
+    expect(body).toEqual({ error: "signups_closed" });
+  });
+
+  it("rejects claim when at MAX_CLAIMED_SITES", async () => {
+    test.env.MAX_CLAIMED_SITES = "1";
+    await test.env.KV.put(platformStatsKey(), JSON.stringify({ claimedSites: 1 }));
+    const sid = await signInViaOtp(test.env, OTHER_EMAIL);
+    const { status, body } = await callControlPlaneJson(["v1", "sites", "claim"], {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ subdomain: "another" }),
+      env: test.env,
+      ...withSessionCookie(sid),
+    });
+    expect(status).toBe(503);
+    expect(body).toEqual({ error: "signups_closed" });
+  });
+
+  it("increments platform stats on successful claim", async () => {
+    const sid = await signInViaOtp(test.env, TEST_EMAIL);
+    await callControlPlane(["v1", "sites", "claim"], {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ subdomain: TEST_SUB }),
+      env: test.env,
+      ...withSessionCookie(sid),
+    });
+    const raw = await test.env.KV.get(platformStatsKey());
+    expect(parsePlatformStats(raw)?.claimedSites).toBe(1);
+  });
+
+  it("GET platform/capacity returns public capacity", async () => {
+    test.env.MAX_CLAIMED_SITES = "150";
+    await test.env.KV.put(platformStatsKey(), JSON.stringify({ claimedSites: 10 }));
+    const { status, body } = await callControlPlaneJson<{
+      signupsOpen: boolean;
+      signupsDisabled: boolean;
+      remaining: number;
+    }>(["v1", "platform", "capacity"], {
+      method: "GET",
+      env: test.env,
+    });
+    expect(status).toBe(200);
+    expect(body?.signupsOpen).toBe(true);
+    expect(body?.signupsDisabled).toBe(false);
+    expect(body?.remaining).toBe(140);
   });
 
   it("returns 409 when subdomain is taken", async () => {

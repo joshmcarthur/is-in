@@ -24,6 +24,8 @@ OTP_FROM = "noreply@is-in.nz"
 OTP_SUBJECT = "Your is-in.nz sign-in code"
 AUTH_MODE = "public"
 SUBDOMAIN_MODERATION = "on"
+SIGNUPS_ENABLED = "true"
+MAX_CLAIMED_SITES = "150"
 
 [[send_email]]
 name = "EMAIL"
@@ -53,6 +55,8 @@ OTP_FROM = "noreply@is-in.nz"
 OTP_SUBJECT = "Your is-in.nz sign-in code (test)"
 AUTH_MODE = "public"
 SUBDOMAIN_MODERATION = "on"
+SIGNUPS_ENABLED = "true"
+MAX_CLAIMED_SITES = "150"
 
 [[env.staging.send_email]]
 name = "EMAIL"

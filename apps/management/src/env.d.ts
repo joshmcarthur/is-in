@@ -30,6 +30,8 @@ declare namespace Cloudflare {
     OTP_ALLOWLIST?: string;
     /** Set to `"on"` to enable Workers AI subdomain moderation. */
     SUBDOMAIN_MODERATION?: string;
+    SIGNUPS_ENABLED?: string;
+    MAX_CLAIMED_SITES?: string;
     ASSETS?: Fetcher;
   }
 }
