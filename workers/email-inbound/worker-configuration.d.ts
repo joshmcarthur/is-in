@@ -3,6 +3,7 @@
 interface __BaseEnv_Env {
 	KV: KVNamespace;
 	ROOT_DOMAIN: "test.is-in.nz" | "is-in.nz";
+	INBOUND_EMAIL_ENABLED?: string;
 }
 declare namespace Cloudflare {
 	interface GlobalProps {

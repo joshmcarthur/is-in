@@ -11,6 +11,7 @@ const siteRecord = (url: string | null): SiteRecord => ({
 describe("public-site worker", () => {
   afterEach(async () => {
     await reset();
+    delete env.WEB_REDIRECTS_ENABLED;
   });
 
   it("redirects when catch-all web forward is set", async () => {
@@ -38,6 +39,15 @@ describe("public-site worker", () => {
     });
     expect(res.status).toBe(301);
     expect(res.headers.get("Location")).toBe("https://example.com/event");
+  });
+
+  it("returns 503 when web redirects are disabled", async () => {
+    env.WEB_REDIRECTS_ENABLED = "false";
+    await env.KV.put(siteKey("demo"), JSON.stringify(siteRecord("https://example.com/landing")));
+    const res = await exports.default.fetch("https://demo.is-in.nz/", {
+      headers: { Host: "demo.is-in.nz" },
+    });
+    expect(res.status).toBe(503);
   });
 
   it("returns 404 for unknown subdomain", async () => {

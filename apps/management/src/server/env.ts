@@ -17,5 +17,12 @@ export interface ManagementEnv {
   SUBDOMAIN_MODERATION?: string;
   SIGNUPS_ENABLED?: string;
   MAX_CLAIMED_SITES?: string;
+  /** Kill switches — default enabled when unset. */
+  MANAGEMENT_ENABLED?: string;
+  OTP_ENABLED?: string;
+  WEB_CONFIG_ENABLED?: string;
+  EMAIL_CONFIG_ENABLED?: string;
+  /** `email:grant1,grant2;other@example.com:all` */
+  OPERATOR_GRANTS?: string;
   ASSETS?: Fetcher;
 }

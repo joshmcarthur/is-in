@@ -32,6 +32,11 @@ declare namespace Cloudflare {
     SUBDOMAIN_MODERATION?: string;
     SIGNUPS_ENABLED?: string;
     MAX_CLAIMED_SITES?: string;
+    MANAGEMENT_ENABLED?: string;
+    OTP_ENABLED?: string;
+    WEB_CONFIG_ENABLED?: string;
+    EMAIL_CONFIG_ENABLED?: string;
+    OPERATOR_GRANTS?: string;
     ASSETS?: Fetcher;
   }
 }

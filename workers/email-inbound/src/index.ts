@@ -1,4 +1,5 @@
 import {
+  parseFeatureEnabled,
   parseSiteFromEmailAddress,
   parseSiteRecord,
   resolveEmailAlias,
@@ -7,7 +8,12 @@ import {
 } from "@is-in/shared";
 import { parseRecipientTo } from "./parse-recipient.js";
 
-type DropReason = "invalid_recipient" | "invalid_address" | "no_site" | "no_alias";
+type DropReason =
+  | "invalid_recipient"
+  | "invalid_address"
+  | "no_site"
+  | "no_alias"
+  | "inbound_email_disabled";
 
 function logDrop(reason: DropReason, detail: Record<string, string>): void {
   console.warn("email_inbound_drop", { reason, ...detail });
@@ -15,6 +21,11 @@ function logDrop(reason: DropReason, detail: Record<string, string>): void {
 
 export default {
   async email(message: ForwardableEmailMessage, env: Env, _ctx: ExecutionContext): Promise<void> {
+    if (!parseFeatureEnabled(env.INBOUND_EMAIL_ENABLED)) {
+      logDrop("inbound_email_disabled", {});
+      return;
+    }
+
     const root = env.ROOT_DOMAIN.toLowerCase();
     const toHeader = message.headers.get("to") ?? message.headers.get("To") ?? "";
     const addr = parseRecipientTo(toHeader);

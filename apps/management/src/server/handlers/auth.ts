@@ -8,6 +8,7 @@ import {
 import { appendSessionCookie } from "../cookies";
 import { hmacSha256Hex, randomOtp6, randomSessionId, timingSafeEqualHex } from "../crypto";
 import { buildOtpEmailContent } from "../email/otpEmail";
+import { assertFeatureAccess } from "../featureAccess";
 import { json } from "../http";
 import { isOtpRecipientAllowed, productFooter } from "../operatorConfig";
 import {
@@ -74,6 +75,12 @@ export const postOtpStart: ControlPlaneHandler = async (request, env) => {
     return json({ ok: true });
   }
   const email = canonicalEmail(emailRaw);
+
+  const managementBlocked = assertFeatureAccess(env, "management", { email });
+  if (managementBlocked) return managementBlocked;
+  const otpBlocked = assertFeatureAccess(env, "otp", { email });
+  if (otpBlocked) return otpBlocked;
+
   if (!isOtpRecipientAllowed(email, env)) {
     return json({ ok: true });
   }
@@ -144,6 +151,11 @@ export const postOtpVerify: ControlPlaneHandler = async (request, env) => {
     return json({ error: "invalid_request" }, 400);
   }
   const email = canonicalEmail(emailRaw);
+
+  const managementBlocked = assertFeatureAccess(env, "management", { email });
+  if (managementBlocked) return managementBlocked;
+  const otpBlocked = assertFeatureAccess(env, "otp", { email });
+  if (otpBlocked) return otpBlocked;
 
   const emailIpBucket = await rateLimitBucket(secret, email, ip);
   const emailIpRl = await consumeRateLimit(

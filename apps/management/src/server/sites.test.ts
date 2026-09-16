@@ -103,6 +103,7 @@ describe("sites", () => {
     const { status, body } = await callControlPlaneJson<{
       signupsOpen: boolean;
       signupsDisabled: boolean;
+      signupsState: string;
       remaining: number;
     }>(["v1", "platform", "capacity"], {
       method: "GET",
@@ -111,7 +112,79 @@ describe("sites", () => {
     expect(status).toBe(200);
     expect(body?.signupsOpen).toBe(true);
     expect(body?.signupsDisabled).toBe(false);
+    expect(body?.signupsState).toBe("open");
     expect(body?.remaining).toBe(140);
+  });
+
+  it("GET platform/status returns feature flags", async () => {
+    test.env.OTP_ENABLED = "false";
+    const { status, body } = await callControlPlaneJson<{
+      otpEnabled: boolean;
+      managementEnabled: boolean;
+    }>(["v1", "platform", "status"], {
+      method: "GET",
+      env: test.env,
+    });
+    expect(status).toBe(200);
+    expect(body?.otpEnabled).toBe(false);
+    expect(body?.managementEnabled).toBe(true);
+  });
+
+  it("returns management_disabled when control plane is locked", async () => {
+    const sid = await signInViaOtp(test.env, TEST_EMAIL);
+    test.env.MANAGEMENT_ENABLED = "false";
+    const { status, body } = await callControlPlaneJson(["v1", "sites", "me"], {
+      method: "GET",
+      env: test.env,
+      ...withSessionCookie(sid),
+    });
+    expect(status).toBe(503);
+    expect(body).toEqual({ error: "management_disabled" });
+  });
+
+  it("blocks web config when WEB_CONFIG_ENABLED is false", async () => {
+    const sid = await signInViaOtp(test.env, TEST_EMAIL);
+    await callControlPlane(["v1", "sites", "claim"], {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ subdomain: TEST_SUB }),
+      env: test.env,
+      ...withSessionCookie(sid),
+    });
+    test.env.WEB_CONFIG_ENABLED = "false";
+    const { status, body } = await callControlPlaneJson(["v1", "sites", TEST_SUB, "forwarding"], {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ webForwardUrl: "https://example.com/page" }),
+      env: test.env,
+      ...withSessionCookie(sid),
+    });
+    expect(status).toBe(503);
+    expect(body).toEqual({ error: "web_config_disabled" });
+  });
+
+  it("allows partial PATCH when only email config is disabled", async () => {
+    const sid = await signInViaOtp(test.env, TEST_EMAIL);
+    await callControlPlane(["v1", "sites", "claim"], {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ subdomain: TEST_SUB }),
+      env: test.env,
+      ...withSessionCookie(sid),
+    });
+    test.env.EMAIL_CONFIG_ENABLED = "false";
+    const { status, body } = await callControlPlaneJson<{ ok: boolean; site: SiteRecord }>(
+      ["v1", "sites", TEST_SUB, "forwarding"],
+      {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ webForwardUrl: "https://example.com/page" }),
+        env: test.env,
+        ...withSessionCookie(sid),
+      },
+    );
+    expect(status).toBe(200);
+    expect(body?.site.webForwards?.[CATCH_ALL_KEY]?.url).toBe("https://example.com/page");
   });
 
   it("returns 409 when subdomain is taken", async () => {

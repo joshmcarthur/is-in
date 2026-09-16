@@ -34,6 +34,7 @@ import { ROOT_DOMAIN } from "../siteDomain";
   <script>
     import { apiBase } from "../client/apiBase";
     import { readJson, requiredElement } from "../client/dom";
+    import { fetchPlatformStatus, managementUnavailableCopy } from "../client/platformStatus";
     import { ROOT_DOMAIN } from "../siteDomain";
 
     const PENDING_SUB_KEY = "isin_pending_subdomain";
@@ -208,7 +209,31 @@ import { ROOT_DOMAIN } from "../siteDomain";
       return raw;
     }
 
+    function applyManagementLockout(copy: string) {
+      const capacityEl = document.getElementById("capacity");
+      const closedEl = document.getElementById("closed");
+      const signInLink = document.getElementById("sign-in-link");
+      if (!closedEl) return;
+      if (capacityEl) capacityEl.hidden = true;
+      closedEl.hidden = false;
+      closedEl.textContent = copy;
+      closedEl.className = "status";
+      if (signInLink) signInLink.hidden = true;
+      subdomainInput.disabled = true;
+      continueBtn.disabled = true;
+      lastAvailableSubdomain = "";
+      updateContinueLabel();
+      updateGuestHint();
+    }
+
     (async () => {
+      const platformStatus = await fetchPlatformStatus(apiBase);
+      const mgmtCopy = managementUnavailableCopy(platformStatus);
+      if (mgmtCopy) {
+        applyManagementLockout(mgmtCopy);
+        return;
+      }
+
       const capRes = await fetch(`${apiBase}/api/v1/platform/capacity`);
       if (capRes.ok) {
         capacityState = await readJson<CapacityState>(capRes);

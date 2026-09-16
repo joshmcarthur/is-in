@@ -1,4 +1,5 @@
 import {
+  parseFeatureEnabled,
   parseSiteHost,
   parseSiteRecord,
   resolveWebForward,
@@ -8,6 +9,10 @@ import {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    if (!parseFeatureEnabled(env.WEB_REDIRECTS_ENABLED)) {
+      return new Response("Web redirects are temporarily unavailable.", { status: 503 });
+    }
+
     const host = request.headers.get("host") ?? "";
     const root = env.ROOT_DOMAIN;
     const productName = env.PRODUCT_NAME ?? root;

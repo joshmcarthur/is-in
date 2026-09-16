@@ -20,6 +20,10 @@ import Layout from "../layouts/Layout.astro";
   <script>
     import { apiBase } from "../client/apiBase";
     import { readJson, requiredElement } from "../client/dom";
+    import {
+      fetchPlatformStatus,
+      webConfigUnavailableCopy,
+    } from "../client/platformStatus";
     import { requireSessionAndSite } from "../client/requireSessionAndSite";
     import { ROOT_DOMAIN } from "../siteDomain";
 
@@ -30,6 +34,15 @@ import Layout from "../layouts/Layout.astro";
 
     async function load() {
       try {
+        const status = await fetchPlatformStatus(apiBase);
+        const copy = webConfigUnavailableCopy(status);
+        if (copy) {
+          msg.textContent = copy;
+          msg.className = "status";
+          web.disabled = true;
+          form.querySelector("button")?.setAttribute("disabled", "true");
+          return;
+        }
         const { site } = await requireSessionAndSite();
         hostpreview.textContent = `${site.subdomain}.${ROOT_DOMAIN}`;
         web.value = site.webForwards?.["*"]?.url || "";
@@ -63,7 +76,11 @@ import Layout from "../layouts/Layout.astro";
       });
       const out = await readJson<{ error?: string }>(res).catch(() => ({}) as { error?: string });
       if (!res.ok) {
-        msg.textContent = out.error || "Save failed.";
+        if (out.error === "web_config_disabled") {
+          msg.textContent = "Web changes are temporarily unavailable.";
+        } else {
+          msg.textContent = out.error || "Save failed.";
+        }
         msg.className = "status status--error";
         return;
       }
