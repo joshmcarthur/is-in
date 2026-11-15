@@ -30,7 +30,7 @@ CI also runs [Gitleaks](https://github.com/gitleaks/gitleaks) for secret scannin
 ## Tooling
 
 - **Biome** — linting and formatting for TypeScript, JSON, Markdown, and Astro frontmatter. Use the [Biome VS Code extension](https://biomejs.dev/reference/vscode/) with format-on-save.
-- **Vitest** — unit tests for `@is-in/shared` and management server modules (`*.test.ts` colocated with source); control-plane tests use `routeApi` + in-memory KV helpers in `apps/management/src/server/testing/`; `@cloudflare/vitest-pool-workers` for the `public-site` and `email-inbound` workers.
+- **Vitest** — unit tests for `@is-in/shared` and management server modules (`*.test.ts` colocated with source); control-plane tests use `routeApi` + in-memory KV helpers in `apps/management/src/server/testing/`; `@cloudflare/vitest-plugin` for the `public-site` and `email-inbound` workers.
 
 ## Tests for new work
 
