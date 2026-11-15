@@ -4,10 +4,13 @@ import { CATCH_ALL_KEY, createEmptySiteRecord, type SiteRecord, siteKey } from "
 import { afterEach, describe, expect, it } from "vitest";
 import worker from "./index.js";
 
-function siteWithAliases(destinations: string[]): SiteRecord {
+function siteWithAliases(destinations: string[], confirmed = destinations): SiteRecord {
   return {
     ...createEmptySiteRecord("owner@example.com", "2025-01-01T00:00:00.000Z"),
     emailAliases: { [CATCH_ALL_KEY]: { destinations } },
+    confirmedDestinations: Object.fromEntries(
+      confirmed.map((d) => [d, "2025-01-02T00:00:00.000Z"]),
+    ),
   };
 }
 
@@ -64,6 +67,17 @@ describe("email-inbound worker", () => {
     });
     const ctx = createExecutionContext();
     await expect(worker.email(message, env, ctx)).resolves.toBeUndefined();
+    expect(forwarded).toEqual(["two@example.com"]);
+  });
+
+  it("skips destinations that have not confirmed", async () => {
+    await env.KV.put(
+      siteKey("demo"),
+      JSON.stringify(siteWithAliases(["one@example.com", "two@example.com"], ["two@example.com"])),
+    );
+    const { message, forwarded } = mockMessage("anything@demo.is-in.nz");
+    const ctx = createExecutionContext();
+    await worker.email(message, env, ctx);
     expect(forwarded).toEqual(["two@example.com"]);
   });
 

@@ -1,0 +1,57 @@
+---
+export const prerender = true;
+
+import Layout from "../layouts/Layout.astro";
+import { PRODUCT_NAME } from "../siteDomain";
+---
+<Layout title="Confirm email forwarding">
+  <div class="stack">
+    <h2 class="h2 title">Confirm email forwarding</h2>
+    <p class="muted">
+      Confirm that this inbox should receive mail forwarded from a {PRODUCT_NAME} address. Nothing is
+      forwarded until you do.
+    </p>
+    <button id="confirm" type="button" class="btn btn-primary">Confirm forwarding</button>
+    <p id="msg" class="status" role="status" aria-live="polite"></p>
+  </div>
+  <script>
+    import { apiBase } from "../client/apiBase";
+    import { readJson, requiredElement } from "../client/dom";
+
+    const button = requiredElement<HTMLButtonElement>("confirm");
+    const msg = requiredElement("msg");
+    const token = new URLSearchParams(window.location.hash.slice(1)).get("token");
+
+    if (!token) {
+      button.disabled = true;
+      msg.textContent = "This link is incomplete. Open it again from the email.";
+      msg.className = "status status--error";
+    }
+
+    // Confirm on click only: mail scanners that prefetch links must not confirm on the recipient's behalf.
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      msg.textContent = "Confirming…";
+      msg.className = "status";
+      const res = await fetch(`${apiBase}/api/v1/destinations/confirm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      type ConfirmResponse = { site?: string; email?: string; error?: string };
+      const out = await readJson<ConfirmResponse>(res).catch(() => ({}) as ConfirmResponse);
+      if (!res.ok) {
+        msg.textContent =
+          out.error === "invalid_token"
+            ? "This link has expired or is not valid. Ask the site owner to save the address again."
+            : out.error === "not_found"
+              ? "This address is no longer set up for forwarding."
+              : "Could not confirm right now. Try again later.";
+        msg.className = "status status--error";
+        return;
+      }
+      msg.textContent = `Confirmed. Mail to ${out.site} now forwards to ${out.email}.`;
+      msg.className = "status status--ok";
+    });
+  </script>
+</Layout>

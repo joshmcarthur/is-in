@@ -65,11 +65,16 @@ export function parseSiteRecord(raw: string): SiteRecord | null {
   if (!webForwards || !emailAliases) return null;
 
   const version = value.version;
+  const confirmedDestinations = parseStringMap(value.confirmedDestinations, (v) =>
+    typeof v === "string" && v ? v : null,
+  );
   return {
     ownerEmail: canonicalEmail(value.ownerEmail),
     createdAt: value.createdAt,
     ...(typeof version === "number" ? { version } : {}),
     webForwards,
     emailAliases,
+    // Invalid or missing confirmations mean "none confirmed": safe, since mail then does not forward.
+    ...(confirmedDestinations ? { confirmedDestinations } : {}),
   };
 }

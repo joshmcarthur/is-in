@@ -45,7 +45,12 @@ import Layout from "../layouts/Layout.astro";
         }
         const { site } = await requireSessionAndSite();
         hostpreview.textContent = `*@${site.subdomain}.${ROOT_DOMAIN}`;
-        mail.value = site.emailAliases?.["*"]?.destinations?.[0] || "";
+        const dest = site.emailAliases?.["*"]?.destinations?.[0] || "";
+        mail.value = dest;
+        if (dest && !site.confirmedDestinations?.[dest]) {
+          msg.textContent = `Waiting for ${dest} to confirm. Save again to resend the link.`;
+          msg.className = "status";
+        }
       } catch {
         return;
       }
@@ -74,7 +79,9 @@ import Layout from "../layouts/Layout.astro";
           emailForwardDest: mailVal || null,
         }),
       });
-      const out = await readJson<{ error?: string }>(res).catch(() => ({}) as { error?: string });
+      const out = await readJson<{ error?: string; pendingDestinations?: string[] }>(res).catch(
+        () => ({}) as { error?: string; pendingDestinations?: string[] },
+      );
       if (!res.ok) {
         if (out.error === "email_config_disabled") {
           msg.textContent = "Email changes are temporarily unavailable.";
@@ -84,7 +91,11 @@ import Layout from "../layouts/Layout.astro";
         msg.className = "status status--error";
         return;
       }
-      msg.textContent = "Saved.";
+      if (mailVal && out.pendingDestinations?.includes(mailVal.toLowerCase())) {
+        msg.textContent = `Saved. We sent a confirmation link to ${mailVal}. Mail forwards once it is confirmed.`;
+      } else {
+        msg.textContent = "Saved.";
+      }
       msg.className = "status status--ok";
     });
   </script>

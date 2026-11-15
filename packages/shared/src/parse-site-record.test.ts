@@ -26,6 +26,25 @@ describe("parseSiteRecord", () => {
     expect(parsed?.emailAliases["*"]?.destinations).toEqual(["fwd@example.com"]);
   });
 
+  it("keeps confirmed destinations and ignores an invalid confirmations map", () => {
+    const base = createEmptySiteRecord("a@b.co", "2026-01-01T00:00:00.000Z");
+    const confirmed = parseSiteRecord(
+      JSON.stringify({
+        ...base,
+        confirmedDestinations: { "fwd@example.com": "2026-02-01T00:00:00.000Z" },
+      }),
+    );
+    expect(confirmed?.confirmedDestinations).toEqual({
+      "fwd@example.com": "2026-02-01T00:00:00.000Z",
+    });
+
+    const invalid = parseSiteRecord(
+      JSON.stringify({ ...base, confirmedDestinations: { "fwd@example.com": 1 } }),
+    );
+    expect(invalid).not.toBeNull();
+    expect(invalid?.confirmedDestinations).toBeUndefined();
+  });
+
   it("rejects malformed JSON", () => {
     expect(parseSiteRecord("{")).toBeNull();
   });
