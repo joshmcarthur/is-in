@@ -11,11 +11,16 @@ function siteWithAliases(destinations: string[]): SiteRecord {
   };
 }
 
-function mockMessage(to: string) {
+function mockMessage(
+  to: string,
+  { toHeader = to, failFor = [] as string[] }: { toHeader?: string; failFor?: string[] } = {},
+) {
   const forwarded: string[] = [];
   const message = {
-    headers: new Headers({ to }),
+    to,
+    headers: new Headers({ to: toHeader }),
     forward: async (destination: string) => {
+      if (failFor.includes(destination)) throw new Error("destination address not verified");
       forwarded.push(destination);
     },
   } as unknown as ForwardableEmailMessage;
@@ -37,6 +42,29 @@ describe("email-inbound worker", () => {
     const ctx = createExecutionContext();
     await worker.email(message, env, ctx);
     expect(forwarded).toEqual(["one@example.com", "two@example.com"]);
+  });
+
+  it("routes on the envelope recipient, not the To header", async () => {
+    await env.KV.put(siteKey("demo"), JSON.stringify(siteWithAliases(["one@example.com"])));
+    const { message, forwarded } = mockMessage("bcc@demo.is-in.nz", {
+      toHeader: "List <list@lists.example.org>",
+    });
+    const ctx = createExecutionContext();
+    await worker.email(message, env, ctx);
+    expect(forwarded).toEqual(["one@example.com"]);
+  });
+
+  it("keeps delivering when one destination fails", async () => {
+    await env.KV.put(
+      siteKey("demo"),
+      JSON.stringify(siteWithAliases(["bad@example.com", "two@example.com"])),
+    );
+    const { message, forwarded } = mockMessage("anything@demo.is-in.nz", {
+      failFor: ["bad@example.com"],
+    });
+    const ctx = createExecutionContext();
+    await expect(worker.email(message, env, ctx)).resolves.toBeUndefined();
+    expect(forwarded).toEqual(["two@example.com"]);
   });
 
   it("drops mail for unknown subdomain without throwing", async () => {
