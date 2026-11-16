@@ -72,10 +72,10 @@ flowchart LR
 
 Use one Cloudflare account with **Wrangler environments** and **separate KV namespace IDs** per env (see [ADR-0006](docs/architectural-decision-records/ADR-0006-staging-environments.md)). Use the **same KV binding IDs** on the Pages project (`apps/management/wrangler.toml`), `workers/public-site`, and `workers/email-inbound` so site records are shared.
 
-| Environment | Management (Pages + `/api`)                                   | Public HTTP worker                   | Inbound mail worker             |
-| ----------- | ------------------------------------------------------------- | ------------------------------------ | ------------------------------- |
-| Production  | `home.is-in.nz`                                               | `*.is-in.nz` → `public-site`         | Email Routing → `email-inbound` |
-| Staging     | `test.is-in.nz` (dashboard + `/api`)                          | `*.test.is-in.nz` → `public-site`    | Staging worker + **staging KV** |
+| Environment | Management (Pages + `/api`)          | Public HTTP worker                | Inbound mail worker             |
+| ----------- | ------------------------------------ | --------------------------------- | ------------------------------- |
+| Production  | `home.is-in.nz`                      | `*.is-in.nz` → `public-site`      | Email Routing → `email-inbound` |
+| Staging     | `test.is-in.nz` (dashboard + `/api`) | `*.test.is-in.nz` → `public-site` | Staging worker + **staging KV** |
 
 **Build-time:** `PUBLIC_API_BASE` is optional. Leave it empty so the UI calls **same-origin** `/api/...`. Set it only if the HTML is ever served from a different origin than the API.
 
@@ -105,24 +105,24 @@ Saving a destination in the dashboard writes a catch-all entry at `emailAliases[
 
 ## Self-host (free) vs hosted multi-tenant
 
-| Mode | OTP | Moderation | Typical use |
-| ---- | --- | ---------- | ----------- |
-| **Self-host** | Set `AUTH_MODE=operator` and `OTP_ALLOWLIST` to verified inboxes only (free on all plans) | `SUBDOMAIN_MODERATION=off` | Your domain, household, club |
-| **Hosted is-in.nz** | `AUTH_MODE=public` (requires **Workers Paid** for arbitrary OTP recipients) | `SUBDOMAIN_MODERATION=on` | Public sign-up on `is-in.nz` |
+| Mode                | OTP                                                                                       | Moderation                 | Typical use                  |
+| ------------------- | ----------------------------------------------------------------------------------------- | -------------------------- | ---------------------------- |
+| **Self-host**       | Set `AUTH_MODE=operator` and `OTP_ALLOWLIST` to verified inboxes only (free on all plans) | `SUBDOMAIN_MODERATION=off` | Your domain, household, club |
+| **Hosted is-in.nz** | `AUTH_MODE=public` (requires **Workers Paid** for arbitrary OTP recipients)               | `SUBDOMAIN_MODERATION=on`  | Public sign-up on `is-in.nz` |
 
 **Hosted capacity:** first cohort capped at **150** claimed sites (`MAX_CLAIMED_SITES`). Set `SIGNUPS_ENABLED=false` in [`apps/management/wrangler.toml`](apps/management/wrangler.toml) to disable new claims without redeploying code. Self-host forks can omit `MAX_CLAIMED_SITES` for unlimited sign-ups. See ADR-0007 in [lore](#how-to-plan-a-feature).
 
 **Operator kill switches** (Wrangler vars, default enabled when unset):
 
-| Var | Worker | Effect | Grant to bypass |
-|-----|--------|--------|-----------------|
-| `MANAGEMENT_ENABLED` | management | Lock control plane | `management` |
-| `OTP_ENABLED` | management | Block OTP sign-in | `otp` |
-| `SIGNUPS_ENABLED` | management | Pause new claims | `signups` |
-| `WEB_CONFIG_ENABLED` | management | Block web link/forward edits | `web_config` |
-| `EMAIL_CONFIG_ENABLED` | management | Block email alias/forward edits | `email_config` |
-| `INBOUND_EMAIL_ENABLED` | email-inbound | Drop inbound mail | — |
-| `WEB_REDIRECTS_ENABLED` | public-site | Stop HTTP redirects | — |
+| Var                     | Worker        | Effect                          | Grant to bypass |
+| ----------------------- | ------------- | ------------------------------- | --------------- |
+| `MANAGEMENT_ENABLED`    | management    | Lock control plane              | `management`    |
+| `OTP_ENABLED`           | management    | Block OTP sign-in               | `otp`           |
+| `SIGNUPS_ENABLED`       | management    | Pause new claims                | `signups`       |
+| `WEB_CONFIG_ENABLED`    | management    | Block web link/forward edits    | `web_config`    |
+| `EMAIL_CONFIG_ENABLED`  | management    | Block email alias/forward edits | `email_config`  |
+| `INBOUND_EMAIL_ENABLED` | email-inbound | Drop inbound mail               | —               |
+| `WEB_REDIRECTS_ENABLED` | public-site   | Stop HTTP redirects             | —               |
 
 Set `OPERATOR_GRANTS="you@example.com:management,otp;backup@example.com:all"` (semicolon-separated `email:grant` entries) so named operators can bypass management flags during an incident. `SUBDOMAIN_MODERATION=off` disables AI moderation without a separate flag.
 

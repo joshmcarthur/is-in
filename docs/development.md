@@ -16,14 +16,14 @@ Workspaces pin TypeScript to `~6.0.3` (`pnpm.overrides` keep it `>=6.0.3 <7`) be
 
 Individual commands:
 
-| Command | Purpose |
-|---------|---------|
-| `pnpm lint` | Lint and format check (Biome) |
-| `pnpm lint:fix` | Auto-fix lint and format issues |
-| `pnpm typecheck` | `tsc` / `astro check` per package |
-| `pnpm test` | All Vitest projects |
-| `pnpm test:watch` | Vitest watch mode |
-| `pnpm --filter @is-in/shared test` | Tests for one workspace |
+| Command                            | Purpose                           |
+| ---------------------------------- | --------------------------------- |
+| `pnpm lint`                        | Lint and format check (Biome)     |
+| `pnpm lint:fix`                    | Auto-fix lint and format issues   |
+| `pnpm typecheck`                   | `tsc` / `astro check` per package |
+| `pnpm test`                        | All Vitest projects               |
+| `pnpm test:watch`                  | Vitest watch mode                 |
+| `pnpm --filter @is-in/shared test` | Tests for one workspace           |
 
 CI also runs [Gitleaks](https://github.com/gitleaks/gitleaks) for secret scanning.
 
