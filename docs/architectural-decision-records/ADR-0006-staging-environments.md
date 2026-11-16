@@ -45,10 +45,10 @@ Use **Option 2**. Each deployable (`apps/management` Pages, `workers/public-site
 
 **Hostnames (illustrative):**
 
-| Environment | Management (Pages: UI + `/api/*`) | Edge workers |
-|-------------|-------------------------------------|----------------|
-| Production | `home.is-in.nz` | `public-site`, `email-inbound` (prod KV) |
-| Staging | `test.is-in.nz` (dashboard + `/api`) | `*.test.is-in.nz` → staging workers + **staging KV** |
+| Environment | Management (Pages: UI + `/api/*`)    | Edge workers                                         |
+| ----------- | ------------------------------------ | ---------------------------------------------------- |
+| Production  | `home.is-in.nz`                      | `public-site`, `email-inbound` (prod KV)             |
+| Staging     | `test.is-in.nz` (dashboard + `/api`) | `*.test.is-in.nz` → staging workers + **staging KV** |
 
 `PUBLIC_API_BASE` is optional; leave unset for same-origin `/api` on the management hostname.
 

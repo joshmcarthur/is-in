@@ -27,6 +27,7 @@ Each user gets a profile page at:
 username.is-in.nz
 
 ### Features:
+
 - Custom CSS styling (no JavaScript allowed)
 - Profile picture
 - Bio text
@@ -36,6 +37,7 @@ username.is-in.nz
   - Status history log (timestamped entries)
 
 ### Constraints:
+
 - Fixed HTML structure provided by platform
 - CSS overrides only
 - Safe rendering (no script injection)
@@ -49,6 +51,7 @@ Users can create short, memorable links under their namespace:
 username.is-in.nz/go/example
 
 ### Features:
+
 - Redirect URLs (HTTP 301/302 configurable)
 - Optional expiry dates
 - Optional title metadata
@@ -56,6 +59,7 @@ username.is-in.nz/go/example
 - Path-based routing support
 
 Example use cases:
+
 - Personal links
 - Event pages
 - Social redirects
@@ -70,12 +74,14 @@ Users can configure email routing for their subdomain:
 anything@username.is-in.nz
 
 ### Features:
+
 - Add/remove aliases
 - Wildcard support (*@username.is-in.nz)
 - Forwarding destinations (external email addresses)
 - Optional multiple destinations per alias
 
 ### Constraints:
+
 - No full mailbox hosting (forwarding only)
 - Verified destination emails required
 
@@ -86,12 +92,14 @@ anything@username.is-in.nz
 Authentication is handled via passwordless email login. For the **reserve-address MVP**, sign-in uses a **numeric one-time code** emailed to the user (see [ADR-0001](../architectural-decision-records/ADR-0001-otp-email-service.md)). Magic links remain a plausible later UX variant.
 
 ### Flow (MVP):
+
 1. User enters email
 2. System emails a short-lived numeric code
 3. User enters the code to establish session
 4. Session grants access to their namespace
 
 ### Features:
+
 - No passwords
 - No OAuth providers
 - Session-based access control
@@ -103,11 +111,11 @@ Authentication is handled via passwordless email login. For the **reserve-addres
 
 Each user controls one or more subdomains:
 
-User  ├── email  ├── session(s)  └── subdomains[]
+User ├── email ├── session(s) └── subdomains[]
 
 Each subdomain:
 
-Subdomain  ├── profile  │    ├── bio  │    ├── avatar  │    ├── status  │    ├── status_history[]  │    └── links[]  ├── redirects[]  └── email_routes[]
+Subdomain ├── profile │ ├── bio │ ├── avatar │ ├── status │ ├── status_history[] │ └── links[] ├── redirects[] └── email_routes[]
 
 ---
 

@@ -59,13 +59,13 @@ Cons:
 
 Adopt **Option 2** with the following key conventions (string prefixes):
 
-| Key | Purpose |
-|-----|---------|
-| `site:{subdomain}` | JSON `SiteRecord`: owner email, timestamps, `webForwards` map, `emailAliases` map (catch-all key `"*"`) |
-| `user:{canonicalEmail}` | JSON: `{ "sites": string[] }` |
-| `otp:{canonicalEmail}` | JSON: `{ "hash", "exp", "attempts" }` |
-| `session:{id}` | JSON: `{ "email", "exp" }` |
-| `ratelimit:{scope}:{bucket}` | Optional counters with TTL for coarse limits |
+| Key                          | Purpose                                                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `site:{subdomain}`           | JSON `SiteRecord`: owner email, timestamps, `webForwards` map, `emailAliases` map (catch-all key `"*"`) |
+| `user:{canonicalEmail}`      | JSON: `{ "sites": string[] }`                                                                           |
+| `otp:{canonicalEmail}`       | JSON: `{ "hash", "exp", "attempts" }`                                                                   |
+| `session:{id}`               | JSON: `{ "email", "exp" }`                                                                              |
+| `ratelimit:{scope}:{bucket}` | Optional counters with TTL for coarse limits                                                            |
 
 **Reserved subdomains:** enforced in Worker code (static list) merged with optional future KV blocklist. Initial reserved set includes: `www`, `home`, `api`, `mail`, `smtp`, `ftp`, `admin`, `root`, `is-in`, `staging`, `dev`, `test`, `_dmarc`, `status`.
 
