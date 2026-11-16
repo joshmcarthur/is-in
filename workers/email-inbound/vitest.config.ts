@@ -5,7 +5,6 @@ export default defineConfig({
   test: {
     name: "email-inbound",
     include: ["src/**/*.test.ts"],
-    environmentMatchGlobs: [["src/parse-recipient.test.ts", "node"]],
   },
   plugins: [
     cloudflareTest({
