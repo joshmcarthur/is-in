@@ -5,6 +5,7 @@ export type OwnedSite = Record<string, unknown> & {
   subdomain: string;
   emailAliases?: Record<string, { destinations?: string[] }>;
   webForwards?: Record<string, { url?: string }>;
+  confirmedDestinations?: Record<string, string>;
 };
 
 type SessionMe = { authenticated?: boolean; email?: string };

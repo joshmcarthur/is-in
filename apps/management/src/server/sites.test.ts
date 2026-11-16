@@ -382,6 +382,77 @@ describe("sites", () => {
     expect(delRes.body?.site.emailAliases?.jobs).toBeUndefined();
   });
 
+  it("emails a confirmation link and only confirms through the token", async () => {
+    const sid = await signInViaOtp(test.env, TEST_EMAIL);
+    await callControlPlane(["v1", "sites", "claim"], {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ subdomain: TEST_SUB }),
+      env: test.env,
+      ...withSessionCookie(sid),
+    });
+    const saveDestination = (dest: string | null) =>
+      callControlPlaneJson<{ site: SiteRecord; pendingDestinations: string[] }>(
+        ["v1", "sites", TEST_SUB, "forwarding"],
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ emailForwardDest: dest }),
+          env: test.env,
+          ...withSessionCookie(sid),
+        },
+      );
+
+    const saved = await saveDestination("fwd@example.com");
+    expect(saved.body.pendingDestinations).toEqual(["fwd@example.com"]);
+    const sent = test.sentEmails.filter((m) => m.to === "fwd@example.com");
+    expect(sent).toHaveLength(1);
+    const token = sent[0]?.text.match(/#token=(\S+)/)?.[1];
+    expect(token).toBeTruthy();
+
+    const bad = await callControlPlaneJson(["v1", "destinations", "confirm"], {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token: `${token}x` }),
+      env: test.env,
+    });
+    expect(bad.status).toBe(400);
+
+    const confirmed = await callControlPlaneJson(["v1", "destinations", "confirm"], {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token }),
+      env: test.env,
+    });
+    expect(confirmed.status).toBe(200);
+    const stored = JSON.parse((await test.env.KV.get(siteKey(TEST_SUB))) ?? "{}") as SiteRecord;
+    expect(stored.confirmedDestinations?.["fwd@example.com"]).toBeTruthy();
+
+    const cleared = await saveDestination(null);
+    expect(cleared.body.site.confirmedDestinations).toEqual({});
+  });
+
+  it("limits confirmation emails per destination", async () => {
+    const sid = await signInViaOtp(test.env, TEST_EMAIL);
+    await callControlPlane(["v1", "sites", "claim"], {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ subdomain: TEST_SUB }),
+      env: test.env,
+      ...withSessionCookie(sid),
+    });
+    for (let i = 0; i < 5; i++) {
+      await callControlPlane(["v1", "sites", TEST_SUB, "aliases"], {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ local: "jobs", destinations: ["target@example.com"] }),
+        env: test.env,
+        ...withSessionCookie(sid),
+      });
+    }
+    expect(test.sentEmails.filter((m) => m.to === "target@example.com")).toHaveLength(3);
+  });
+
   it("PATCH forwarding returns 403 for non-owner", async () => {
     const site = createEmptySiteRecord(canonicalEmail(OTHER_EMAIL), new Date().toISOString());
     await test.env.KV.put(siteKey(TEST_SUB), JSON.stringify(site));

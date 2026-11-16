@@ -10,6 +10,7 @@ import {
   deleteSiteLink,
   getSitesMe,
   patchSiteForwarding,
+  postDestinationConfirm,
   postSiteAlias,
   postSiteLink,
   postSitesClaim,
@@ -52,6 +53,7 @@ const routes: Route[] = [
   { method: "POST", pathname: "/api/v1/sites/:subdomain/links", handle: postSiteLink },
   { method: "DELETE", pathname: "/api/v1/sites/:subdomain/links/:path+", handle: deleteSiteLink },
   { method: "POST", pathname: "/api/v1/sites/:subdomain/aliases", handle: postSiteAlias },
+  { method: "POST", pathname: "/api/v1/destinations/confirm", handle: postDestinationConfirm },
   {
     method: "DELETE",
     pathname: "/api/v1/sites/:subdomain/aliases/:local",

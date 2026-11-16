@@ -13,11 +13,18 @@ import {
   normalizeEmailLocal,
   normalizeWebPath,
   parseSiteRecord,
+  referencedDestinations,
   type SiteRecord,
   siteKey,
   type UserRecord,
   userKey,
 } from "@is-in/shared";
+import {
+  pendingDestinations,
+  pruneConfirmations,
+  sendDestinationConfirmations,
+  verifyDestinationToken,
+} from "../destinations";
 import { assertFeatureAccess } from "../featureAccess";
 import { json } from "../http";
 import { moderateSubdomain } from "../moderation/subdomain";
@@ -58,6 +65,7 @@ async function persistSite(
   site: SiteRecord,
 ) {
   site.version = 2;
+  pruneConfirmations(site);
   await env.KV.put(siteKey(subdomain), JSON.stringify(site));
 }
 
@@ -205,7 +213,16 @@ export const patchSiteForwarding: ControlPlaneHandler = async (request, env, seg
   }
 
   await persistSite(env, subdomain, site);
-  return json({ ok: true, site });
+  if (typeof body.emailForwardDest === "string" && body.emailForwardDest) {
+    await sendDestinationConfirmations(
+      env,
+      new URL(request.url).origin,
+      subdomain,
+      site,
+      site.emailAliases[CATCH_ALL_KEY]?.destinations ?? [],
+    );
+  }
+  return json({ ok: true, site, pendingDestinations: pendingDestinations(site) });
 };
 
 export const postSiteLink: ControlPlaneHandler = async (request, env, segments) => {
@@ -322,7 +339,20 @@ export const postSiteAlias: ControlPlaneHandler = async (request, env, segments)
 
   emailAliases[localKey] = { destinations };
   await persistSite(env, subdomain, site);
-  return json({ ok: true, local: localKey, alias: emailAliases[localKey], site });
+  await sendDestinationConfirmations(
+    env,
+    new URL(request.url).origin,
+    subdomain,
+    site,
+    destinations,
+  );
+  return json({
+    ok: true,
+    local: localKey,
+    alias: emailAliases[localKey],
+    site,
+    pendingDestinations: pendingDestinations(site),
+  });
 };
 
 export const deleteSiteAlias: ControlPlaneHandler = async (request, env, segments) => {
@@ -346,4 +376,35 @@ export const deleteSiteAlias: ControlPlaneHandler = async (request, env, segment
   delete emailAliases[localKey];
   await persistSite(env, subdomain, site);
   return json({ ok: true, site });
+};
+
+/** Public: the recipient of a confirmation email (not the site owner) confirms a destination. */
+export const postDestinationConfirm: ControlPlaneHandler = async (request, env) => {
+  let body: { token?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "invalid_json" }, 400);
+  }
+  const verified =
+    typeof body.token === "string"
+      ? await verifyDestinationToken(env.SESSION_SECRET, body.token)
+      : null;
+  if (!verified) return json({ error: "invalid_token" }, 400);
+
+  const { subdomain, email } = verified;
+  const raw = await env.KV.get(siteKey(subdomain));
+  const site = raw ? parseSiteRecord(raw) : null;
+  if (!site || !referencedDestinations(site).has(email)) {
+    return json({ error: "not_found" }, 404);
+  }
+  const blocked = assertFeatureAccess(env, "email_config", { email: site.ownerEmail });
+  if (blocked) return blocked;
+
+  site.confirmedDestinations = {
+    ...site.confirmedDestinations,
+    [email]: site.confirmedDestinations?.[email] ?? new Date().toISOString(),
+  };
+  await persistSite(env, subdomain, site);
+  return json({ ok: true, site: `${subdomain}.${env.ROOT_DOMAIN}`, email });
 };

@@ -33,6 +33,8 @@ export type SiteRecord = {
   version?: number;
   webForwards: Record<string, WebForward>;
   emailAliases: Record<string, EmailAlias>;
+  /** Destination email → ISO time its recipient confirmed. Mail only forwards to confirmed destinations. */
+  confirmedDestinations?: Record<string, string>;
 };
 
 /** Normalise an HTTP path to a map key (no leading slash, collapsed slashes, lowercased). */
@@ -112,6 +114,19 @@ export function resolveEmailAlias(site: SiteRecord, localPart: string): EmailAli
   const exact = maps[key] ?? maps[CATCH_ALL_KEY];
   if (exact?.destinations.length) return exact;
   return null;
+}
+
+/** Every destination used by any alias on the site. */
+export function referencedDestinations(site: SiteRecord): Set<string> {
+  const out = new Set<string>();
+  for (const alias of Object.values(site.emailAliases ?? {})) {
+    for (const destination of alias.destinations) out.add(destination);
+  }
+  return out;
+}
+
+export function isDestinationConfirmed(site: SiteRecord, destination: string): boolean {
+  return Boolean(site.confirmedDestinations?.[destination]);
 }
 
 export function createEmptySiteRecord(ownerEmail: string, createdAt: string): SiteRecord {

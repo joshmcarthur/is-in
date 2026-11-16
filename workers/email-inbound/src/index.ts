@@ -1,4 +1,4 @@
-import { type InboundContext, runMessageChecks } from "./checks.js";
+import { type InboundContext, runDestinationChecks, runMessageChecks } from "./checks.js";
 import { deliverNative } from "./deliver.js";
 
 export default {
@@ -17,6 +17,11 @@ export default {
     }
 
     for (const destination of ctx.destinations) {
+      const check = runDestinationChecks(ctx, destination);
+      if (check.action === "drop") {
+        console.warn("email_inbound_drop", { reason: check.reason, ...check.detail });
+        continue;
+      }
       const delivery = await deliverNative(message, destination);
       if (!delivery.ok) {
         console.error("email_inbound_delivery_failed", {

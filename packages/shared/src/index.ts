@@ -59,6 +59,7 @@ export {
   countWebLinks,
   createEmptySiteRecord,
   ensureForwardingMaps,
+  isDestinationConfirmed,
   isReservedWebPath,
   isValidEmailLocalKey,
   isValidWebPathKey,
@@ -68,6 +69,7 @@ export {
   normalizeEmailLocal,
   normalizeWebPath,
   RESERVED_EMAIL_LOCALS,
+  referencedDestinations,
   resolveEmailAlias,
   resolveWebForward,
 } from "./forwarding.js";

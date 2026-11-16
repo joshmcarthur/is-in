@@ -1,4 +1,5 @@
 import {
+  isDestinationConfirmed,
   parseFeatureEnabled,
   parseSiteFromEmailAddress,
   parseSiteRecord,
@@ -8,7 +9,12 @@ import {
   wrapCloudflareKv,
 } from "@is-in/shared";
 
-export type DropReason = "inbound_email_disabled" | "invalid_address" | "no_site" | "no_alias";
+export type DropReason =
+  | "inbound_email_disabled"
+  | "invalid_address"
+  | "no_site"
+  | "no_alias"
+  | "unconfirmed_destination";
 
 export type CheckResult =
   | { action: "continue" }
@@ -25,6 +31,9 @@ export type InboundContext = {
 };
 
 export type MessageCheck = (ctx: InboundContext) => Promise<CheckResult>;
+
+/** Runs after message checks, once per destination. Never sees the message body. */
+export type DestinationCheck = (ctx: InboundContext, destination: string) => CheckResult;
 
 const CONTINUE: CheckResult = { action: "continue" };
 
@@ -64,6 +73,30 @@ export async function runMessageChecks(
 ): Promise<CheckResult> {
   for (const check of checks) {
     const result = await check(ctx);
+    if (result.action !== "continue") return result;
+  }
+  return CONTINUE;
+}
+
+/** Only forward to destinations whose recipient confirmed (opt-in). */
+export const destinationConfirmed: DestinationCheck = (ctx, destination) =>
+  ctx.site && isDestinationConfirmed(ctx.site, destination)
+    ? CONTINUE
+    : {
+        action: "drop",
+        reason: "unconfirmed_destination",
+        detail: { subdomain: ctx.subdomain ?? "", destination },
+      };
+
+export const DESTINATION_CHECKS: DestinationCheck[] = [destinationConfirmed];
+
+export function runDestinationChecks(
+  ctx: InboundContext,
+  destination: string,
+  checks: DestinationCheck[] = DESTINATION_CHECKS,
+): CheckResult {
+  for (const check of checks) {
+    const result = check(ctx, destination);
     if (result.action !== "continue") return result;
   }
   return CONTINUE;
