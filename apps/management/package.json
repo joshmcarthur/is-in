@@ -12,7 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@astrojs/cloudflare": "^14.4.8",
+    "@astrojs/cloudflare": "^14.4.9",
     "@is-in/shared": "workspace:*",
     "astro": "^7.4.12"
   },
